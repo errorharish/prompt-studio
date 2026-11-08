@@ -99,6 +99,15 @@ export function presetTargetMb(app: RamApp, mode: Exclude<RamMode, "MANUAL">, sy
 export const clampManualMb = (mb: number) =>
   Math.min(MANUAL_MAX_MB, Math.max(MANUAL_MIN_MB, Math.round(mb)));
 
+/** Safe per-app manual range: never below the app's category floor, never above 8 GB. */
+export function appManualRange(app: RamApp): { minMb: number; maxMb: number } {
+  return { minMb: Math.max(MANUAL_MIN_MB, CATEGORY_FLOOR_MB[app.category]), maxMb: MANUAL_MAX_MB };
+}
+export function clampAppManualMb(app: RamApp, mb: number): number {
+  const { minMb, maxMb } = appManualRange(app);
+  return Math.min(maxMb, Math.max(minMb, Math.round(mb)));
+}
+
 export interface RamConfig {
   mode: RamMode;
   foregroundProtection: boolean;
@@ -129,7 +138,7 @@ export function planApp(app: RamApp, cfg: RamConfig, sys: SystemMemory): AppPlan
   const override = cfg.mode === "MANUAL" ? cfg.manualMb[app.name] : undefined;
   const targetMb =
     cfg.mode === "MANUAL"
-      ? clampManualMb(override ?? defaultManualMb(app, sys))
+      ? (override !== undefined ? clampAppManualMb(app, override) : defaultManualMb(app, sys))
       : presetTargetMb(app, cfg.mode, sys);
   return {
     app,
