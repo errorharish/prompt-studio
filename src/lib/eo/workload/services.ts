@@ -5,7 +5,6 @@ import type { WorkloadBackend } from "./backend";
 import {
   isCriticalExe,
   type EligibleApp,
-  type OptimizationPlan,
   type ProcessEvent,
   type ResolvedWorkload,
   type RunningWorkload,
@@ -97,59 +96,43 @@ export class ApplicationLauncher {
   }
 }
 
-export type OptimizerPhase = "OPTIMIZING" | "OPTIMIZED" | "RESTORED" | "UNCONFIRMED" | "FAILED";
+export type OptimizerPhase = "OPTIMIZING" | "OPTIMIZED" | "RESTORED";
 
-/** Serializes backend changes and checks the latest process state after every acknowledgement. */
+/** Applies only changed plans to the backend; reverts paused/exited ones. Never terminates processes. */
 export class WorkloadOptimizer {
   private applied = new Map<number, string>();
-  private latest: ResolvedWorkload[] = [];
-  private revision = 0;
-  private pending: Promise<void> | null = null;
   constructor(
     private backend: WorkloadBackend,
-    private onPhase: (pid: number, phase: OptimizerPhase, plan?: OptimizationPlan, error?: string) => void = () => {},
+    private onPhase: (pid: number, phase: OptimizerPhase) => void = () => {},
   ) {}
-  sync(list: ResolvedWorkload[]): Promise<void> {
-    this.latest = list;
-    this.revision += 1;
-    if (!this.pending) {
-      this.pending = this.drain().finally(() => { this.pending = null; });
-    }
-    return this.pending;
-  }
-  private async drain() {
-    let processed = -1;
-    while (processed !== this.revision) {
-      processed = this.revision;
-      const active = new Map(this.latest.filter((w) => w.status !== "PAUSED").map((w) => [w.pid, w]));
-      for (const pid of [...this.applied.keys()]) {
-        if (active.has(pid)) continue;
-        try {
-          await this.backend.revertPlan(pid);
-          this.applied.delete(pid);
-          this.onPhase(pid, "RESTORED");
-        } catch (e) {
-          this.onPhase(pid, "FAILED", undefined, e instanceof Error ? e.message : "Restoration failed");
-        }
+  async sync(list: ResolvedWorkload[]) {
+    const live = new Set(list.map((w) => w.pid));
+    for (const pid of [...this.applied.keys()]) {
+      if (live.has(pid)) continue;
+      // Process exited: restore any temporary system settings changed for this workload.
+      this.applied.delete(pid);
+      try {
+        await this.backend.revertPlan(pid);
+      } finally {
+        this.onPhase(pid, "RESTORED");
       }
-      for (const w of active.values()) {
-        // A start/exit/stop may arrive while another app is being optimized.
-        const current = this.latest.find((x) => x.pid === w.pid && x.status !== "PAUSED");
-        if (!current) continue;
-        const sig = JSON.stringify(current.plan);
-        if (this.applied.get(w.pid) === sig) continue;
+    }
+    for (const w of list) {
+      if (w.status === "PAUSED") {
+        if (this.applied.has(w.pid)) {
+          this.applied.delete(w.pid);
+          await this.backend.revertPlan(w.pid);
+        }
+        continue;
+      }
+      const sig = JSON.stringify(w.plan);
+      if (this.applied.get(w.pid) !== sig) {
+        this.applied.set(w.pid, sig);
         this.onPhase(w.pid, "OPTIMIZING");
         try {
-          const result = await this.backend.applyPlan(w.pid, current.plan);
-          this.applied.set(w.pid, sig);
-          // A legacy void acknowledgement proves request completion, not which methods succeeded.
-          const confirmed = result && Array.isArray(result.actions) &&
-            ["HIGH", "ABOVE_NORMAL", "NORMAL"].includes(result.priority);
-          if (this.latest.some((x) => x.pid === w.pid && x.status !== "PAUSED")) {
-            this.onPhase(w.pid, confirmed ? "OPTIMIZED" : "UNCONFIRMED", confirmed ? result : undefined);
-          }
-        } catch (e) {
-          this.onPhase(w.pid, "FAILED", undefined, e instanceof Error ? e.message : "Optimization failed");
+          await this.backend.applyPlan(w.pid, w.plan);
+        } finally {
+          this.onPhase(w.pid, "OPTIMIZED");
         }
       }
     }

@@ -7,7 +7,7 @@ export interface WorkloadBackend {
   /** Registry uninstall keys, install dirs, known paths and running processes. */
   discoverInstalledApps(): Promise<EligibleApp[]>;
   launch(app: EligibleApp): Promise<{ pid: number }>;
-  applyPlan(pid: number, plan: OptimizationPlan): Promise<OptimizationPlan | void>;
+  applyPlan(pid: number, plan: OptimizationPlan): Promise<void>;
   revertPlan(pid: number): Promise<void>;
   /** Event-driven process start/exit/foreground notifications (WMI / ETW on the native side). */
   subscribe(handler: (e: ProcessEvent) => void): () => void;
@@ -37,13 +37,9 @@ export class WebView2WorkloadBackend implements WorkloadBackend {
         event?: ProcessEvent;
       } | null;
       if (!msg) return;
-      if (msg.event) {
-        const event = msg.event;
-        this.handlers.forEach((h) => h(event));
-      }
+      if (msg.event) this.handlers.forEach((h) => h(msg.event!));
       if (msg.id && this.pending.has(msg.id)) {
-        const p = this.pending.get(msg.id);
-        if (!p) return;
+        const p = this.pending.get(msg.id)!;
         this.pending.delete(msg.id);
         if (msg.ok === false) p.fail(new Error(msg.error ?? "Native request failed"));
         else p.ok(msg.result);
@@ -69,7 +65,7 @@ export class WebView2WorkloadBackend implements WorkloadBackend {
     return this.request<{ pid: number }>("workload:launch", { path: app.path });
   }
   applyPlan(pid: number, plan: OptimizationPlan) {
-    return this.request<OptimizationPlan | void>("workload:apply", { pid, plan });
+    return this.request<void>("workload:apply", { pid, plan });
   }
   revertPlan(pid: number) {
     return this.request<void>("workload:revert", { pid });
@@ -211,7 +207,6 @@ export class SimulatedWorkloadBackend implements WorkloadBackend {
     // Preview only: short pause so the OPTIMIZING state is visible.
     await new Promise((r) => setTimeout(r, 700));
     this.applied.set(pid, plan);
-    return plan;
   }
   async revertPlan(pid: number) {
     this.applied.delete(pid);

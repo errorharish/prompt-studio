@@ -23,9 +23,8 @@ import {
   WorkloadOptimizer,
   reduceProcessEvent,
   type MonitorState,
-  type OptimizerPhase,
 } from "@/lib/eo/workload/services";
-import type { EligibleApp, ProcessEvent, ResolvedWorkload, OptimizationPlan } from "@/lib/eo/workload/types";
+import type { EligibleApp, ProcessEvent, ResolvedWorkload } from "@/lib/eo/workload/types";
 
 const CUSTOM_KEY = "eo-workload-custom-apps:v1";
 
@@ -41,7 +40,6 @@ export interface WorkloadView {
   lastScanAt: number | null;
   /** PIDs whose optimization profile is being applied right now. */
   optimizing: number[];
-  results: Record<number, { phase: OptimizerPhase; plan?: OptimizationPlan; error?: string }>;
 }
 
 const EMPTY: WorkloadView = {
@@ -55,7 +53,6 @@ const EMPTY: WorkloadView = {
   scanning: false,
   lastScanAt: null,
   optimizing: [],
-  results: {},
 };
 
 let view: WorkloadView = EMPTY;
@@ -64,8 +61,6 @@ let backend: WorkloadBackend | null = null;
 let discovery: InstalledApplicationDiscovery;
 let launcher: ApplicationLauncher;
 let optimizer: WorkloadOptimizer;
-let inventoryReady = false;
-const queuedEvents: ProcessEvent[] = [];
 const listeners = new Set<() => void>();
 
 function emit() {
@@ -86,11 +81,9 @@ function recompute() {
 }
 
 function onProcessEvent(e: ProcessEvent) {
-  if (!inventoryReady) { queuedEvents.push(e); return; }
   monitorState = reduceProcessEvent(monitorState, e, view.inventory);
   if (e.type === "process-start" && e.exe) {
-    const exe = e.exe.toLowerCase();
-    set({ launching: view.launching.filter((x) => x.toLowerCase() !== exe) });
+    set({ launching: view.launching.filter((x) => x.toLowerCase() !== e.exe!.toLowerCase()) });
   }
   recompute();
 }
@@ -108,12 +101,9 @@ function init() {
   backend = createWorkloadBackend();
   discovery = new InstalledApplicationDiscovery(backend);
   launcher = new ApplicationLauncher(backend);
-  optimizer = new WorkloadOptimizer(backend, (pid, phase, plan, error) => {
+  optimizer = new WorkloadOptimizer(backend, (pid, phase) => {
     const rest = view.optimizing.filter((p) => p !== pid);
-    const results = { ...view.results };
-    if (view.workloads.some((w) => w.pid === pid)) results[pid] = { phase, plan, error };
-    else delete results[pid];
-    set({ optimizing: phase === "OPTIMIZING" ? [...rest, pid] : rest, results });
+    set({ optimizing: phase === "OPTIMIZING" ? [...rest, pid] : rest });
   });
   let custom: EligibleApp[] = [];
   try {
@@ -123,7 +113,7 @@ function init() {
   }
   set({ mode: backend.mode, custom });
   new RunningProcessMonitor(backend, onProcessEvent).start();
-  void workloadActions.rescan().catch(() => {});
+  void workloadActions.rescan();
 }
 
 function subscribe(l: () => void) {
@@ -158,9 +148,6 @@ export const workloadActions = {
         discovered: discovered.filter((d) => !customExes.has(d.exe.toLowerCase())),
         lastScanAt: Date.now(),
       });
-      inventoryReady = true;
-      const events = queuedEvents.splice(0);
-      events.forEach(onProcessEvent);
     } finally {
       set({ scanning: false });
     }
@@ -209,8 +196,7 @@ export const workloadActions = {
       if (err) return err;
       const custom = updateCustomApp(view.custom, id, input);
       saveCustom(custom);
-      const app = custom.find((c) => c.id === id);
-      if (!app) return "Custom application no longer exists.";
+      const app = custom.find((c) => c.id === id)!;
       monitorState = {
         ...monitorState,
         running: monitorState.running.map((w) =>
