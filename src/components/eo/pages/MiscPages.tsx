@@ -1,5 +1,5 @@
 // AiOptimizationView, BackupRestoreView, SettingsView, AboutView, PerformanceTuningView
-import { useState, useMemo, type ReactNode } from "react";
+import { useEffect, useRef, useState, useMemo, type ReactNode } from "react";
 import {
   Badge,
   Bar,
@@ -70,6 +70,9 @@ import {
   Zap,
 } from "lucide-react";
 import { RestorePointDialog } from "../RestorePoint";
+import { WorkloadOptimizationPanel } from "../WorkloadOptimizationPanel";
+import { useWorkloads } from "../workloadStore";
+import { summarizeWorkloads } from "@/lib/eo/workload/optimizer";
 import { PremiumSelect } from "../dropdown";
 import { setRestoreState, useRestoreState } from "../restorePointStore";
 import { PROTECTION_SCENARIOS, SYSTEM_DRIVE } from "@/lib/eo/restorePoint";
@@ -86,34 +89,6 @@ const PRESSURE_OPTIONS: [string, number][] = [
   ["HIGH 78%", 0.78],
   ["CRITICAL 90%", 0.9],
 ];
-
-interface EligibleWorkload {
-  name: string;
-  category: "GAMES" | "CREATIVE" | "VIDEO AI" | "EMULATORS";
-  exe: string;
-  compatibleProfile: string;
-}
-
-const DEFAULT_ELIGIBLE_WORKLOADS: EligibleWorkload[] = [
-  { name: "Valorant", category: "GAMES", exe: "VALORANT-Win64-Shipping.exe", compatibleProfile: "High-Priority Execution & Anti-Lag Affinity" },
-  { name: "Counter-Strike 2", category: "GAMES", exe: "cs2.exe", compatibleProfile: "High-Priority Execution & Anti-Lag Affinity" },
-  { name: "Cyberpunk 2077", category: "GAMES", exe: "Cyberpunk2077.exe", compatibleProfile: "High-Priority Execution & GPU Boost" },
-  { name: "Adobe Premiere Pro", category: "CREATIVE", exe: "Adobe Premiere Pro.exe", compatibleProfile: "Multi-Thread CPU Affinity & Standby Memory Shield" },
-  { name: "DaVinci Resolve", category: "CREATIVE", exe: "Resolve.exe", compatibleProfile: "Multi-Thread CPU Affinity & Standby Memory Shield" },
-  { name: "After Effects", category: "CREATIVE", exe: "AfterFX.exe", compatibleProfile: "Multi-Thread CPU Affinity & Standby Memory Shield" },
-  { name: "Blender", category: "CREATIVE", exe: "blender.exe", compatibleProfile: "Multi-Thread CPU Affinity & Render Boost" },
-  { name: "Topaz Video AI", category: "VIDEO AI", exe: "Topaz Video AI.exe", compatibleProfile: "GPU Compute Boost & Background Throttle" },
-  { name: "ComfyUI", category: "VIDEO AI", exe: "python.exe", compatibleProfile: "GPU Compute Boost & Background Throttle" },
-  { name: "MSI App Player 5", category: "EMULATORS", exe: "HD-Player.exe", compatibleProfile: "Virtualization Thread Isolation & High Timer Resolution" },
-  { name: "LDPlayer 9", category: "EMULATORS", exe: "dnplayer.exe", compatibleProfile: "Virtualization Thread Isolation & High Timer Resolution" },
-];
-
-interface ActiveWorkloadState {
-  name: string;
-  category: string;
-  profile: string;
-  pid: number;
-}
 
 interface PowerPlanItem {
   name: string;
@@ -209,30 +184,11 @@ export function AiOptimizationPage() {
     [mode, fg, ram.manualMb, ram.excluded, sys, standbyPurged],
   );
 
-  /* ────────────── 2. WORKLOAD OPTIMIZER STATE ────────────── */
-  const [inv, setInv] = useState("ALL");
-  const [eligibleWorkloads, setEligibleWorkloads] = useState<EligibleWorkload[]>(DEFAULT_ELIGIBLE_WORKLOADS);
-
-  // Multiple running workloads supported independently
-  const [activeWorkloads, setActiveWorkloads] = useState<ActiveWorkloadState[]>([
-    {
-      name: "Valorant",
-      category: "GAMES",
-      profile: "High-Priority Execution & Anti-Lag Affinity",
-      pid: 9428,
-    },
-  ]);
-
-  const [workloadOptions, setWorkloadOptions] = useState<Record<string, boolean>>({
-    "Foreground CPU priority boost": true,
-    "Anti-Lag affinity isolation": true,
-    "Suspend background updaters": true,
-    "Standby memory refresh on launch": true,
-  });
-  const [bgCpuThrottlePercent, setBgCpuThrottlePercent] = useState(25);
-  const [savedProfiles, setSavedProfiles] = useState<string[]>([
-    "Valorant · High Priority Boost, Affinity Lock, 25% Throttle",
-  ]);
+  /* ────────────── 2. WORKLOAD OPTIMIZER STATE (shared, event-driven) ────────────── */
+  const wl = useWorkloads();
+  const wlResolved = wl.workloads;
+  const wlSummary = useMemo(() => summarizeWorkloads(wlResolved), [wlResolved]);
+  const activeWorkloads = wlResolved.filter((w) => w.status === "OPTIMIZED");
 
   /* ────────────── 3. POWER PLAN GOVERNOR STATE ────────────── */
   const [powerPlans, setPowerPlans] = useState<PowerPlanItem[]>(DEFAULT_POWER_PLANS);
@@ -242,6 +198,16 @@ export function AiOptimizationPage() {
   const [cpuGovernor, setCpuGovernor] = useState(true);
   const [thermalFreqLimit, setThermalFreqLimit] = useState(95);
 
+  // Automatic power plan follows detected workloads (start → AI Max, last exit → Balanced).
+  const prevOptimized = useRef(activeWorkloads.length);
+  useEffect(() => {
+    const prev = prevOptimized.current;
+    prevOptimized.current = activeWorkloads.length;
+    if (!autoPowerPlan || prev === activeWorkloads.length) return;
+    if (activeWorkloads.length > 0 && prev === 0) setActivePowerPlan("AI Max Performance");
+    if (activeWorkloads.length === 0) setActivePowerPlan("Balanced");
+  }, [activeWorkloads.length, autoPowerPlan]);
+
   /* Modal state for creating power plan */
   const [planModalOpen, setPlanModalOpen] = useState(false);
   const [newPlanName, setNewPlanName] = useState("EO Custom Performance");
@@ -249,11 +215,6 @@ export function AiOptimizationPage() {
   const [newPlanCpuMin, setNewPlanCpuMin] = useState(100);
   const [newPlanCpuMax, setNewPlanCpuMax] = useState(100);
   const [newPlanCooling, setNewPlanCooling] = useState<"Active" | "Passive">("Active");
-
-  /* Modal state for adding custom application */
-  const [addAppOpen, setAddAppOpen] = useState(false);
-  const [newAppName, setNewAppName] = useState("");
-  const [newAppCategory, setNewAppCategory] = useState("GAMES");
 
   /* Filtered eligible background applications */
   const visiblePlans = useMemo(() => {
@@ -313,30 +274,6 @@ export function AiOptimizationPage() {
     });
   };
 
-  const handleResetWorkloadOptimizer = () => {
-    setWorkloadOptions({
-      "Foreground CPU priority boost": true,
-      "Anti-Lag affinity isolation": true,
-      "Suspend background updaters": true,
-      "Standby memory refresh on launch": true,
-    });
-    setBgCpuThrottlePercent(25);
-    toast.info("Workload Optimizer Reset", {
-      description: "Restored recommended defaults (Foreground boost, Affinity lock, 25% throttle).",
-    });
-  };
-
-  const handleSaveWorkloadProfile = () => {
-    const primaryName = activeWorkloads[0]?.name || "Default Workload";
-    const profileSummary = `${primaryName} · Foreground Boost, Affinity Lock, ${bgCpuThrottlePercent}% Throttle`;
-    if (!savedProfiles.includes(profileSummary)) {
-      setSavedProfiles((prev) => [profileSummary, ...prev]);
-    }
-    toast.success("Workload Profile Saved", {
-      description: `Saved configuration profile with ${bgCpuThrottlePercent}% background CPU throttle. (Simulated)`,
-    });
-  };
-
   const handleResetPowerGovernor = () => {
     setCpuGovernor(true);
     setAutoPowerPlan(true);
@@ -351,88 +288,6 @@ export function AiOptimizationPage() {
     toast.success(`Power Plan Activated: ${p}`, {
       description: `Enforced ${p} as the active system power scheme. (Simulated)`,
     });
-  };
-
-  // Launch workload with automatic compatible profile activation
-  const handleLaunchWorkload = (workload: EligibleWorkload) => {
-    if (activeWorkloads.some((w) => w.name === workload.name)) {
-      // Stop running workload
-      setActiveWorkloads((prev) => prev.filter((w) => w.name !== workload.name));
-      toast.info(`Workload Terminated: ${workload.name}`, {
-        description: "Restored safe background execution priorities.",
-      });
-      if (activeWorkloads.length <= 1 && autoPowerPlan) {
-        setActivePowerPlan("Balanced");
-      }
-    } else {
-      // Launch workload and activate compatible profile
-      const newEntry: ActiveWorkloadState = {
-        name: workload.name,
-        category: workload.category,
-        profile: workload.compatibleProfile,
-        pid: Math.floor(1000 + Math.random() * 9000),
-      };
-      setActiveWorkloads((prev) => [...prev, newEntry]);
-      toast.success(`Workload Launched: ${workload.name}`, {
-        description: `Automatic Profile Activated: ${workload.compatibleProfile}. (Simulated)`,
-      });
-      if (autoPowerPlan) {
-        setActivePowerPlan("AI Max Performance");
-      }
-    }
-  };
-
-  const handleStopWorkload = (workloadName: string) => {
-    setActiveWorkloads((prev) => prev.filter((w) => w.name !== workloadName));
-    toast.info(`Workload Terminated: ${workloadName}`, {
-      description: "Safe state restored. Normal background priorities resumed.",
-    });
-    if (activeWorkloads.length <= 1 && autoPowerPlan) {
-      setActivePowerPlan("Balanced");
-    }
-  };
-
-  const handleAddCustomApp = () => {
-    const raw = newAppName.trim();
-    if (!raw) return;
-
-    // Prevent unsupported system critical applications from receiving arbitrary profiles
-    const systemCritical = ["explorer.exe", "dwm.exe", "csrss.exe", "svchost.exe", "winlogon.exe", "lsass.exe", "services.exe"];
-    const cleanName = raw.toLowerCase().endsWith(".exe") ? raw : `${raw}.exe`;
-
-    if (systemCritical.includes(cleanName.toLowerCase())) {
-      toast.error("Unsupported Process", {
-        description: `${cleanName} is a system critical component and cannot be assigned workload profiles.`,
-      });
-      return;
-    }
-
-    // Determine compatible profile based on selected category
-    let profile = "High-Priority Execution & Anti-Lag Affinity";
-    if (newAppCategory === "CREATIVE") {
-      profile = "Multi-Thread CPU Affinity & Standby Memory Shield";
-    } else if (newAppCategory === "VIDEO AI") {
-      profile = "GPU Compute Boost & Background Throttle";
-    } else if (newAppCategory === "EMULATORS") {
-      profile = "Virtualization Thread Isolation & High Timer Resolution";
-    }
-
-    const appDisplayName = cleanName.replace(/\.exe$/i, "");
-    setEligibleWorkloads((prev) => [
-      ...prev,
-      {
-        name: appDisplayName,
-        category: newAppCategory as EligibleWorkload["category"],
-        exe: cleanName,
-        compatibleProfile: profile,
-      },
-    ]);
-
-    toast.success("Custom Workload Registered", {
-      description: `Registered ${cleanName} under ${newAppCategory} with ${profile}.`,
-    });
-    setNewAppName("");
-    setAddAppOpen(false);
   };
 
   const handleCreatePowerPlan = () => {
@@ -458,7 +313,7 @@ export function AiOptimizationPage() {
   // Dynamic auto actions count
   const autoActionCount =
     (aiMasterEnabled ? 1 : 0) +
-    (workloadOptions["Foreground CPU priority boost"] ? 1 : 0) +
+    wlSummary.autoActions +
     (cpuGovernor ? 1 : 0) +
     (autoPowerPlan ? 1 : 0);
 
@@ -476,7 +331,7 @@ export function AiOptimizationPage() {
             </Badge>
           </>
         }
-        sub="Sample RAM limits, workload profiles and power recommendations; confirmation required."
+        sub="Sample RAM limits, automatic workload optimization and power recommendations; confirmation required."
       />
 
       {/* 2. Top Navigation Toolbar */}
@@ -517,16 +372,26 @@ export function AiOptimizationPage() {
           {
             label: "RAM USAGE · SAMPLE",
             value: `${Math.round(
-              (ram.pressure - (standbyPurged ? standbyPurgeMb(mode, sys) / SAMPLE_SYS_TOTAL_MB : 0)) * 100,
+              Math.min(
+                0.99,
+                ram.pressure -
+                  (standbyPurged ? standbyPurgeMb(mode, sys) / SAMPLE_SYS_TOTAL_MB : 0) +
+                  wlSummary.memMb / SAMPLE_SYS_TOTAL_MB,
+              ) * 100,
             )}%`,
             sub: `${SYSTEM_RAM_GB} GB system memory`,
           },
           { label: "AUTO ACTIONS", value: autoActionCount },
-          { label: "BACKGROUND APPS", value: ramSummary.plans.filter((p) => !p.app.foreground && !p.app.critical).length },
+          {
+            label: "BACKGROUND APPS",
+            value:
+              ramSummary.plans.filter((p) => !p.app.foreground && !p.app.critical).length +
+              wlResolved.filter((w) => !w.foreground).length,
+          },
           { label: "ACTIVE WORKLOADS", value: activeWorkloads.length },
-          { label: "SAFE", value: 6, tone: "success" },
-          { label: "MEDIUM RISK", value: 1, tone: "warning" },
-          { label: "HIGH RISK", value: 0, tone: "danger" },
+          { label: "SAFE", value: wlSummary.safe, tone: "success" },
+          { label: "MEDIUM RISK", value: wlSummary.medium, tone: "warning" },
+          { label: "HIGH RISK", value: wlSummary.high, tone: "danger" },
         ]}
       />
 
@@ -625,7 +490,7 @@ export function AiOptimizationPage() {
                 <Label className="text-foreground">
                   SEARCH RUNNING BACKGROUND APPLICATIONS
                 </Label>
-                <Btn size="sm" onClick={() => setAddAppOpen(true)}>
+                <Btn size="sm" onClick={() => setMod("WORKLOAD OPTIMIZATION")} title="Custom apps are managed in Workload Optimization">
                   + Add custom app
                 </Btn>
               </div>
@@ -899,234 +764,7 @@ export function AiOptimizationPage() {
         )}
 
         {/* ── SUB-OPTIMIZATION B: WORKLOAD OPTIMIZATION ── */}
-        {mod === "WORKLOAD OPTIMIZATION" && (
-          <>
-            {/* Multiple Running Workloads Card */}
-            <Card>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Label className="text-foreground">CURRENTLY RUNNING WORKLOADS</Label>
-                  <Badge tone={activeWorkloads.length > 0 ? "success" : "muted"}>
-                    {activeWorkloads.length} ACTIVE
-                  </Badge>
-                </div>
-                <Btn
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    const valorant = eligibleWorkloads.find((w) => w.name === "Valorant");
-                    if (valorant) handleLaunchWorkload(valorant);
-                  }}
-                >
-                  {activeWorkloads.some((w) => w.name === "Valorant")
-                    ? "Stop Valorant Simulation"
-                    : "Simulate Launch: Valorant"}
-                </Btn>
-              </div>
-
-              {activeWorkloads.length === 0 ? (
-                <div className="flex items-center gap-3 rounded-lg border border-dashed border-border-strong p-4">
-                  <span className="text-xl">🎮</span>
-                  <div>
-                    <div className="text-[13px] font-bold">NO SUPPORTED WORKLOAD RUNNING</div>
-                    <p className="text-xs text-muted-foreground">
-                      Launch any supported game, emulator, creative tool, or video AI workload to automatically activate its compatible profile.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {activeWorkloads.map((aw) => (
-                    <div
-                      key={aw.name}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-cyan/40 bg-cyan/5 p-3"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-xl">⚡</span>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[13px] font-bold text-foreground">
-                              {aw.name.toUpperCase()}
-                            </span>
-                            <Badge tone="cyan">{aw.category}</Badge>
-                            <span className="font-mono text-[10.5px] text-muted-foreground">PID: {aw.pid}</span>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            Profile: <span className="text-foreground font-medium">{aw.profile}</span>
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge tone="success">OPTIMIZING · ACTIVE</Badge>
-                        <Btn size="sm" variant="ghost" onClick={() => handleStopWorkload(aw.name)}>
-                          Stop Workload
-                        </Btn>
-                      </div>
-                    </div>
-                  ))}
-                  {activeWorkloads.length > 1 && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded border border-border bg-window text-[11px] text-muted-foreground">
-                      <Sparkles className="h-3.5 w-3.5 text-cyan" />
-                      <span>
-                        Autonomous Conflict Resolution: Multiple simultaneous workloads active. Independent CPU core affinity partitions and priority boosts applied without conflict.
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </Card>
-
-            {/* Installed Workload Inventory Card */}
-            <Card>
-              <Label className="mb-3 text-foreground">INSTALLED WORKLOAD INVENTORY</Label>
-              <div className="mb-3 flex items-center justify-between">
-                <Chips
-                  options={["ALL", "GAMES", "CREATIVE", "VIDEO AI", "EMULATORS"]}
-                  value={inv}
-                  onChange={setInv}
-                />
-                <Btn size="sm" onClick={() => setAddAppOpen(true)}>
-                  + Add custom app
-                </Btn>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                {eligibleWorkloads
-                  .filter((x) => inv === "ALL" || x.category === inv)
-                  .map((w) => {
-                    const isRunning = activeWorkloads.some((aw) => aw.name === w.name);
-                    return (
-                      <div
-                        key={w.name}
-                        className={cn(
-                          "flex flex-col justify-between gap-2 eo-list-row rounded-lg border bg-window p-3 text-[12.5px]",
-                          isRunning ? "border-cyan/60 bg-cyan/5 shadow-sm shadow-cyan/10" : "border-border"
-                        )}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold">{w.name}</span>
-                          <Badge tone={isRunning ? "cyan" : "muted"}>{w.category}</Badge>
-                        </div>
-                        <div className="text-[11px] text-muted-foreground line-clamp-1" title={w.compatibleProfile}>
-                          {w.compatibleProfile}
-                        </div>
-                        <div className="flex items-center justify-between border-t border-border pt-2 mt-1">
-                          <span className="font-mono text-[10px] text-subtle truncate max-w-[140px]">
-                            {w.exe}
-                          </span>
-                          <Btn
-                            size="sm"
-                            variant={isRunning ? "ghost" : "outline"}
-                            onClick={() => handleLaunchWorkload(w)}
-                          >
-                            {isRunning ? "Stop" : "Simulate Launch"}
-                          </Btn>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-              <Btn
-                size="sm"
-                variant="ghost"
-                className="mt-3"
-                onClick={() => {
-                  simulate("Force rescan inventory");
-                  toast.info("Inventory Rescanned", {
-                    description: "Rescanned installed games, emulators and creative applications.",
-                  });
-                }}
-              >
-                Force rescan inventory
-              </Btn>
-            </Card>
-
-            {/* Target Configuration Card */}
-            <Card>
-              <div className="mb-3 flex items-center justify-between">
-                <Label className="text-foreground">WORKLOAD PROFILE PARAMETERS</Label>
-                <div className="flex items-center gap-2">
-                  <Btn size="sm" variant="ghost" onClick={handleResetWorkloadOptimizer}>
-                    <RotateCcw className="h-3 w-3 mr-1" /> Reset to recommended
-                  </Btn>
-                  <Btn size="sm" variant="primary" onClick={handleSaveWorkloadProfile}>
-                    Save profile
-                  </Btn>
-                </div>
-              </div>
-
-              {/* 2x2 Grid of Sub-Optimization Toggles */}
-              <div className="grid grid-cols-2 gap-2 mb-3">
-                {[
-                  "Foreground CPU priority boost",
-                  "Anti-Lag affinity isolation",
-                  "Suspend background updaters",
-                  "Standby memory refresh on launch",
-                ].map((o) => (
-                  <div
-                    key={o}
-                    className="flex items-center justify-between eo-list-row rounded-lg border border-border bg-window px-3 py-2.5 text-[12.5px]"
-                  >
-                    <span>{o}</span>
-                    <Toggle
-                      label={o}
-                      on={workloadOptions[o] !== false}
-                      onChange={(v) => setWorkloadOptions((s) => ({ ...s, [o]: v }))}
-                    />
-                  </div>
-                ))}
-              </div>
-
-              {/* Background CPU Throttle Slider (10% to 50%) */}
-              <div className="rounded-lg border border-border bg-window p-3">
-                <div className="flex items-center justify-between mb-1">
-                  <Label className="text-foreground text-xs">
-                    BACKGROUND CPU THROTTLE LIMIT
-                  </Label>
-                  <span className="font-mono text-xs font-bold text-cyan">
-                    {bgCpuThrottlePercent}%
-                  </span>
-                </div>
-                <p className="text-[11px] text-muted-foreground mb-2">
-                  Caps background task CPU usage to eliminate frame stutters while running games or creative workloads. (Default: 25%)
-                </p>
-                <RangeSlider
-                  id="eo-bg-cpu-throttle"
-                  label="Background CPU throttle limit"
-                  value={bgCpuThrottlePercent}
-                  onChange={setBgCpuThrottlePercent}
-                  min={10}
-                  max={50}
-                  step={5}
-                  valueText={`${bgCpuThrottlePercent}%`}
-                  marks={[
-                    { value: 10, label: "10% MIN" },
-                    { value: 25, label: "25% RECOMMENDED", tone: "success" },
-                    { value: 50, label: "50% MAX" },
-                  ]}
-                />
-              </div>
-            </Card>
-
-            {/* Saved Custom Profiles */}
-            <Card>
-              <div className="flex items-center justify-between mb-2">
-                <Label className="text-foreground">SAVED CUSTOM PROFILES</Label>
-                <Badge tone="cyan">{savedProfiles.length} SAVED</Badge>
-              </div>
-              <div className="space-y-1.5">
-                {savedProfiles.map((sp, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between eo-list-row rounded-lg border border-border bg-window px-3 py-2 text-[12.5px]"
-                  >
-                    <span className="font-mono text-[12px]">{sp}</span>
-                    <Badge tone="success">SAVED</Badge>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          </>
-        )}
+        {mod === "WORKLOAD OPTIMIZATION" && <WorkloadOptimizationPanel />}
 
         {/* ── SUB-OPTIMIZATION C: POWER PLAN OPTIMIZATION ── */}
         {mod === "POWER PLAN OPTIMIZATION" && (
@@ -1428,46 +1066,6 @@ export function AiOptimizationPage() {
         </div>
       </Modal>
 
-      {/* Modal: Add Custom Application */}
-      <Modal
-        open={addAppOpen}
-        onClose={() => setAddAppOpen(false)}
-        title="Register Custom Target Application"
-        footer={
-          <>
-            <Btn variant="ghost" onClick={() => setAddAppOpen(false)}>
-              Cancel
-            </Btn>
-            <Btn variant="primary" onClick={handleAddCustomApp}>
-              Register Application
-            </Btn>
-          </>
-        }
-      >
-        <div className="space-y-3">
-          <div>
-            <Label className="mb-1">APPLICATION EXECUTABLE NAME</Label>
-            <input
-              className="h-9 w-full rounded-lg border border-border bg-window px-3 text-sm focus:outline-none focus:border-cyan"
-              placeholder="e.g. premiere.exe or blender.exe"
-              value={newAppName}
-              onChange={(e) => setNewAppName(e.target.value)}
-            />
-          </div>
-          <div>
-            <Label className="mb-1">CATEGORY</Label>
-            <PremiumSelect
-              label="Workload Category"
-              value={newAppCategory}
-              onChange={setNewAppCategory}
-              options={["GAMES", "CREATIVE", "VIDEO AI", "EMULATORS"]}
-            />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Custom registered applications will automatically be protected by the RAM Limiter and receive high-priority thread allocation. System critical processes cannot be registered.
-          </p>
-        </div>
-      </Modal>
     </div>
   );
 }

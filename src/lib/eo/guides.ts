@@ -311,7 +311,7 @@ export const GUIDES = {
   },
   "ai-optimization": {
     title: "AI Optimization",
-    what: "Sets per-app RAM limits, workload profiles and power plan recommendations.",
+    what: "Sets per-app RAM limits, automatic per-app workload optimization and power plan recommendations.",
     why: "Stops one app using too much memory and matches power settings to what you're doing.",
     how: "Choose an app and a limit; the limit is watched while the app runs.",
     when: "When a browser or launcher grows large in the background.",
