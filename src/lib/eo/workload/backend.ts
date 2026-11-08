@@ -204,10 +204,16 @@ export class SimulatedWorkloadBackend implements WorkloadBackend {
     return { pid: this.start(app, "EO_LAUNCH") };
   }
   async applyPlan(pid: number, plan: OptimizationPlan) {
+    // Preview only: short pause so the OPTIMIZING state is visible.
+    await new Promise((r) => setTimeout(r, 700));
     this.applied.set(pid, plan);
   }
   async revertPlan(pid: number) {
     this.applied.delete(pid);
+  }
+  /** Preview only: pids that currently have a plan applied. */
+  appliedPids() {
+    return [...this.applied.keys()];
   }
   async pickExecutable() {
     return null;

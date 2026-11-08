@@ -195,6 +195,8 @@ export function WorkloadOptimizationPanel() {
                     <div className="flex items-center gap-2">
                       {paused ? (
                         <Badge tone="muted">OPTIMIZATION STOPPED</Badge>
+                      ) : wl.optimizing.includes(w.pid) ? (
+                        <Badge tone="warning">OPTIMIZING…</Badge>
                       ) : (
                         <Badge tone="success">
                           {sim ? "OPTIMIZED · SIMULATED" : "OPTIMIZED · ACTIVE"}
