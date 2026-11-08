@@ -3,6 +3,7 @@ import {
   appManualRange,
   clampAppManualMb,
   SAMPLE_APPS,
+  defaultManualMb,
   planApp,
   presetTargetMb,
   summarize,
@@ -75,8 +76,8 @@ describe("RAM Limiter manual mode", () => {
     for (const n of Object.keys(before)) if (n !== "Discord.exe") expect(after[n]).toBe(before[n]);
   });
 
-  it("clamps manual targets to 128 MB – 8 GB", () => {
-    expect(planApp(app("chrome.exe"), cfg("MANUAL", { manualMb: { "chrome.exe": 10 } }), sys).targetMb).toBe(128);
+  it("clamps manual targets to the app floor – 8 GB", () => {
+    expect(planApp(app("chrome.exe"), cfg("MANUAL", { manualMb: { "chrome.exe": 10 } }), sys).targetMb).toBe(400);
     expect(planApp(app("chrome.exe"), cfg("MANUAL", { manualMb: { "chrome.exe": 99999 } }), sys).targetMb).toBe(8192);
   });
 
