@@ -38,6 +38,8 @@ export interface WorkloadView {
   launching: string[];
   scanning: boolean;
   lastScanAt: number | null;
+  /** PIDs whose optimization profile is being applied right now. */
+  optimizing: number[];
 }
 
 const EMPTY: WorkloadView = {
@@ -50,6 +52,7 @@ const EMPTY: WorkloadView = {
   launching: [],
   scanning: false,
   lastScanAt: null,
+  optimizing: [],
 };
 
 let view: WorkloadView = EMPTY;
@@ -98,7 +101,10 @@ function init() {
   backend = createWorkloadBackend();
   discovery = new InstalledApplicationDiscovery(backend);
   launcher = new ApplicationLauncher(backend);
-  optimizer = new WorkloadOptimizer(backend);
+  optimizer = new WorkloadOptimizer(backend, (pid, phase) => {
+    const rest = view.optimizing.filter((p) => p !== pid);
+    set({ optimizing: phase === "OPTIMIZING" ? [...rest, pid] : rest });
+  });
   let custom: EligibleApp[] = [];
   try {
     custom = parseStoredCustomApps(JSON.parse(window.localStorage.getItem(CUSTOM_KEY) ?? "[]"));

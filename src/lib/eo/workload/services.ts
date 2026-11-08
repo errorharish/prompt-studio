@@ -96,14 +96,26 @@ export class ApplicationLauncher {
   }
 }
 
+export type OptimizerPhase = "OPTIMIZING" | "OPTIMIZED" | "RESTORED";
+
 /** Applies only changed plans to the backend; reverts paused/exited ones. Never terminates processes. */
 export class WorkloadOptimizer {
   private applied = new Map<number, string>();
-  constructor(private backend: WorkloadBackend) {}
+  constructor(
+    private backend: WorkloadBackend,
+    private onPhase: (pid: number, phase: OptimizerPhase) => void = () => {},
+  ) {}
   async sync(list: ResolvedWorkload[]) {
     const live = new Set(list.map((w) => w.pid));
     for (const pid of [...this.applied.keys()]) {
-      if (!live.has(pid)) this.applied.delete(pid); // process exited — nothing to revert
+      if (live.has(pid)) continue;
+      // Process exited: restore any temporary system settings changed for this workload.
+      this.applied.delete(pid);
+      try {
+        await this.backend.revertPlan(pid);
+      } finally {
+        this.onPhase(pid, "RESTORED");
+      }
     }
     for (const w of list) {
       if (w.status === "PAUSED") {
@@ -116,7 +128,12 @@ export class WorkloadOptimizer {
       const sig = JSON.stringify(w.plan);
       if (this.applied.get(w.pid) !== sig) {
         this.applied.set(w.pid, sig);
-        await this.backend.applyPlan(w.pid, w.plan);
+        this.onPhase(w.pid, "OPTIMIZING");
+        try {
+          await this.backend.applyPlan(w.pid, w.plan);
+        } finally {
+          this.onPhase(w.pid, "OPTIMIZED");
+        }
       }
     }
   }
