@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  appManualRange,
+  clampAppManualMb,
   SAMPLE_APPS,
   planApp,
   presetTargetMb,
