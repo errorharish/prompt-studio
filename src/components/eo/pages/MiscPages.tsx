@@ -1517,6 +1517,8 @@ function RamLimiterPanel({
   const isGb = unit === "GB";
   const shown = isGb ? draftMb / 1024 : draftMb;
   const setShown = (v: number) => setDraftMb(clampManualMb(isGb ? v * 1024 : v));
+  // Slider spans up to twice the working set (exact field still accepts up to 8 GB).
+  const sliderMax = Math.min(MANUAL_MAX_MB, Math.max(1024, Math.ceil((workingSetMb * 2) / 256) * 256));
   return (
     <Card className="eo-hero eo-ram">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1583,17 +1585,16 @@ function RamLimiterPanel({
             id="eo-ram-limit"
             className="mt-3"
             label={`RAM target for ${appName}`}
-            value={draftMb}
+            value={Math.min(draftMb, sliderMax)}
             onChange={(v) => setDraftMb(clampManualMb(v))}
             min={MANUAL_MIN_MB}
-            max={MANUAL_MAX_MB}
-            step={32}
+            max={sliderMax}
+            step={16}
             valueText={fmtMb(draftMb)}
             marks={[
-              { value: MANUAL_MIN_MB, label: `MIN ${MANUAL_MIN_MB} MB` },
               { value: defaultMb, label: `DEFAULT ${defaultMb} MB`, tone: "success" },
-              { value: 4096, label: "4 GB" },
-              { value: MANUAL_MAX_MB, label: "MAX 8 GB" },
+              { value: workingSetMb, label: `CURRENT ${workingSetMb} MB` },
+              { value: sliderMax, label: `${fmtMb(sliderMax)}` },
             ]}
           />
 
@@ -1631,7 +1632,7 @@ function RamLimiterPanel({
             unit={unit}
           />
           <p className="text-[10.5px] text-subtle">
-            {MANUAL_MIN_MB} MB – 8 GB · arrow keys adjust · Escape restores
+            Valid range {MANUAL_MIN_MB} MB – 8 GB · arrow keys adjust · Escape restores
           </p>
 
           <Btn
