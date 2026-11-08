@@ -81,8 +81,8 @@ import { toast } from "sonner";
 const SYSTEM_RAM_GB = 32; // sample system memory (HW.ram)
 const SAMPLE_SYS_TOTAL_MB = SYSTEM_RAM_GB * 1024;
 const PRESSURE_OPTIONS: [string, number][] = [
-  ["LOW 45%", 0.45],
-  ["NORMAL 62%", 0.62],
+  ["LOW 38%", 0.38],
+  ["MODERATE 62%", 0.62],
   ["HIGH 78%", 0.78],
   ["CRITICAL 90%", 0.9],
 ];
@@ -269,7 +269,7 @@ export function AiOptimizationPage() {
   const applyMode = (m: RamMode) => {
     if (modeBusy || m === mode) return;
     setModeBusy(true);
-    setRamState({ mode: m });
+    setRamState({ mode: m, standbyPurged: false });
     window.setTimeout(() => setModeBusy(false), 350);
     const next = summarize(
       SAMPLE_APPS,
@@ -665,9 +665,9 @@ export function AiOptimizationPage() {
                     <Chips
                       label="Simulated memory pressure"
                       options={PRESSURE_OPTIONS.map(([l]) => l)}
-                      value={PRESSURE_OPTIONS.find(([, v]) => v === ram.pressure)?.[0] ?? "NORMAL 62%"}
+                      value={PRESSURE_OPTIONS.find(([, v]) => v === ram.pressure)?.[0] ?? "LOW 38%"}
                       onChange={(l) => {
-                        const v = PRESSURE_OPTIONS.find(([x]) => x === l)?.[1] ?? 0.62;
+                        const v = PRESSURE_OPTIONS.find(([x]) => x === l)?.[1] ?? 0.38;
                         setRamState({ pressure: v });
                       }}
                     />

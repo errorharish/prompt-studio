@@ -22,7 +22,7 @@ export const RAM_DEFAULTS: RamLimiterState = {
   trimInterval: "10 MIN",
   manualMb: {},
   excluded: [],
-  pressure: 0.62,
+  pressure: 0.38,
   standbyPurged: false,
 };
 
