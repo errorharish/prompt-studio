@@ -516,11 +516,13 @@ export function AiOptimizationPage() {
         items={[
           {
             label: "RAM USAGE · SAMPLE",
-            value: standbyPurged ? "32%" : "38%",
+            value: `${Math.round(
+              (ram.pressure - (standbyPurged ? standbyPurgeMb(mode, sys) / SAMPLE_SYS_TOTAL_MB : 0)) * 100,
+            )}%`,
             sub: `${SYSTEM_RAM_GB} GB system memory`,
           },
           { label: "AUTO ACTIONS", value: autoActionCount },
-          { label: "BACKGROUND APPS", value: eligibleBgApps.length },
+          { label: "BACKGROUND APPS", value: ramSummary.plans.filter((p) => !p.app.foreground && !p.app.critical).length },
           { label: "ACTIVE WORKLOADS", value: activeWorkloads.length },
           { label: "SAFE", value: 6, tone: "success" },
           { label: "MEDIUM RISK", value: 1, tone: "warning" },
