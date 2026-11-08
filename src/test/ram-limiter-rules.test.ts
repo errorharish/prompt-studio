@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  appManualRange,
+  clampAppManualMb,
   SAMPLE_APPS,
+  defaultManualMb,
   planApp,
   presetTargetMb,
   summarize,
@@ -73,8 +76,8 @@ describe("RAM Limiter manual mode", () => {
     for (const n of Object.keys(before)) if (n !== "Discord.exe") expect(after[n]).toBe(before[n]);
   });
 
-  it("clamps manual targets to 128 MB – 8 GB", () => {
-    expect(planApp(app("chrome.exe"), cfg("MANUAL", { manualMb: { "chrome.exe": 10 } }), sys).targetMb).toBe(128);
+  it("clamps manual targets to the app floor – 8 GB", () => {
+    expect(planApp(app("chrome.exe"), cfg("MANUAL", { manualMb: { "chrome.exe": 10 } }), sys).targetMb).toBe(400);
     expect(planApp(app("chrome.exe"), cfg("MANUAL", { manualMb: { "chrome.exe": 99999 } }), sys).targetMb).toBe(8192);
   });
 
@@ -82,5 +85,42 @@ describe("RAM Limiter manual mode", () => {
     const s = summarize(SAMPLE_APPS, cfg("AGGRESSIVE"), sys, false);
     expect(s.reclaimMb).toBe(s.plans.reduce((a, p) => a + p.reclaimMb, 0));
     expect(s.reclaimMb).toBeGreaterThan(0);
+  });
+});
+
+describe("manual override isolation (popup workflow)", () => {
+  const sys = { totalMb: 32768, pressure: 0.38 };
+  const base = { foregroundProtection: true, excluded: [] as string[] };
+  const targets = (cfg: Parameters<typeof summarize>[1]) =>
+    Object.fromEntries(summarize(SAMPLE_APPS, cfg, sys, false).plans.map((p) => [p.app.name, p.targetMb]));
+
+  it("752 MB on chrome.exe changes only chrome", () => {
+    const before = targets({ ...base, mode: "MANUAL", manualMb: {} });
+    const after = targets({ ...base, mode: "MANUAL", manualMb: { "chrome.exe": 752 } });
+    expect(after["chrome.exe"]).toBe(752);
+    for (const k of Object.keys(before)) if (k !== "chrome.exe") expect(after[k]).toBe(before[k]);
+  });
+
+  it("only overridden apps are flagged as manual overrides", () => {
+    const plans = summarize(SAMPLE_APPS, { ...base, mode: "MANUAL", manualMb: { "chrome.exe": 752 } }, sys, false).plans;
+    expect(plans.filter((p) => p.manualOverride).map((p) => p.app.name)).toEqual(["chrome.exe"]);
+  });
+
+  it("deleting the override restores the default target", () => {
+    const chrome = SAMPLE_APPS.find((a) => a.name === "chrome.exe")!;
+    expect(targets({ ...base, mode: "MANUAL", manualMb: {} })["chrome.exe"]).toBe(defaultManualMb(chrome, sys));
+  });
+
+  it("preset modes ignore saved manual targets", () => {
+    for (const mode of ["AUTO", "LIGHT", "AGGRESSIVE"] as const) {
+      expect(targets({ ...base, mode, manualMb: { "chrome.exe": 752 } })).toEqual(targets({ ...base, mode, manualMb: {} }));
+    }
+  });
+
+  it("manual targets never go below the app's safe floor", () => {
+    const chrome = SAMPLE_APPS.find((a) => a.name === "chrome.exe")!;
+    expect(appManualRange(chrome).minMb).toBe(400);
+    expect(clampAppManualMb(chrome, 150)).toBe(400);
+    expect(targets({ ...base, mode: "MANUAL", manualMb: { "chrome.exe": 150 } })["chrome.exe"]).toBe(400);
   });
 });

@@ -33,6 +33,8 @@ import {
   MANUAL_MIN_MB,
   RAM_MODES,
   SAMPLE_APPS,
+  appManualRange,
+  clampAppManualMb,
   clampManualMb,
   defaultManualMb,
   fmtMb,
@@ -169,7 +171,7 @@ export function AiOptimizationPage() {
   // One shared RAM Limiter configuration (persisted); every panel below reads it.
   const ram = useRamState();
   const { mode, trimInterval, foregroundProtection: fg, standbyPurged } = ram;
-  const [selectedApp, setSelectedApp] = useState("chrome.exe");
+  const [editingApp, setEditingApp] = useState<string | null>(null);
   const [aggressiveConfirm, setAggressiveConfirm] = useState(false);
   const [modeBusy, setModeBusy] = useState(false);
   const sys = useMemo(() => ({ totalMb: SAMPLE_SYS_TOTAL_MB, pressure: ram.pressure }), [ram.pressure]);
@@ -221,8 +223,17 @@ export function AiOptimizationPage() {
     );
   }, [ramSummary.plans, query]);
   const manualPlans = visiblePlans.filter((p) => p.status === "ELIGIBLE");
-  const selectedPlan = ramSummary.plans.find((p) => p.app.name === selectedApp && p.status === "ELIGIBLE")
-    ?? ramSummary.plans.find((p) => p.status === "ELIGIBLE");
+  const editingPlan = editingApp
+    ? ramSummary.plans.find((p) => p.app.name === editingApp && p.status === "ELIGIBLE")
+    : undefined;
+  const manualOverrides = ramSummary.plans.filter((p) => p.manualOverride && p.targetMb !== null);
+  const clearManualOverride = (name: string) => {
+    setRamState((s) => {
+      const next = { ...s.manualMb };
+      delete next[name];
+      return { manualMb: next };
+    });
+  };
 
   const applyMode = (m: RamMode) => {
     if (modeBusy || m === mode) return;
@@ -561,71 +572,128 @@ export function AiOptimizationPage() {
                     <Badge tone="cyan">{manualPlans.length} ELIGIBLE BACKGROUND APPS</Badge>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {manualPlans.map((p) => {
-                      const isSelected = selectedPlan?.app.name === p.app.name;
-                      return (
-                        <button
-                          type="button"
-                          key={p.app.name}
-                          aria-pressed={isSelected}
-                          onClick={() => setSelectedApp(p.app.name)}
-                          className={cn(
-                            "flex flex-col gap-1 p-2.5 rounded-lg border cursor-pointer transition-colors text-left text-[12px]",
-                            isSelected
-                              ? "border-cyan/60 bg-cyan/10 shadow-sm shadow-cyan/10"
-                              : "border-border bg-window hover:border-border-strong"
-                          )}
-                        >
-                          <div className="flex w-full items-center justify-between font-semibold">
-                            <span className="truncate">{p.app.name}</span>
-                            <Badge tone={isSelected ? "cyan" : "muted"}>{p.manualOverride ? "CUSTOM" : p.app.category}</Badge>
-                          </div>
-                          <div className="flex w-full items-center justify-between text-[11px] text-muted-foreground">
-                            <span>{p.app.workingSetMb} MB current</span>
-                            <span className="font-mono text-cyan font-bold tabular-nums">{p.targetMb} MB target</span>
-                          </div>
-                        </button>
-                      );
-                    })}
+                    {manualPlans.map((p) => (
+                      <div
+                        key={p.app.name}
+                        className={cn(
+                          "flex flex-col gap-1.5 p-2.5 rounded-lg border text-left text-[12px]",
+                          p.manualOverride ? "border-cyan/60 bg-cyan/10 shadow-sm shadow-cyan/10" : "border-border bg-window",
+                        )}
+                      >
+                        <div className="flex w-full items-center justify-between font-semibold">
+                          <span className="truncate">{p.app.title}</span>
+                          <Badge tone={p.manualOverride ? "cyan" : "muted"}>{p.manualOverride ? "CUSTOM" : p.app.category}</Badge>
+                        </div>
+                        <div className="font-mono text-[10.5px] text-subtle">{p.app.name}</div>
+                        <div className="flex w-full items-center justify-between text-[11px] text-muted-foreground">
+                          <span>{p.app.workingSetMb} MB current</span>
+                          <span className="font-mono text-cyan font-bold tabular-nums">{p.targetMb} MB target</span>
+                        </div>
+                        <Btn size="sm" variant={p.manualOverride ? "ghost" : "secondary"} onClick={() => setEditingApp(p.app.name)}>
+                          <Target className="h-3 w-3 mr-1" /> {p.manualOverride ? "Edit Target" : "Configure RAM Limit"}
+                        </Btn>
+                      </div>
+                    ))}
                   </div>
                 </Card>
 
-                {selectedPlan && selectedPlan.targetMb !== null && (
-                  <RamLimiterPanel
-                    key={selectedPlan.app.name}
-                    appName={selectedPlan.app.name}
-                    workingSetMb={selectedPlan.app.workingSetMb}
-                    savedMb={selectedPlan.targetMb}
-                    defaultMb={defaultManualMb(selectedPlan.app, sys)}
-                    overridden={selectedPlan.manualOverride}
-                    onSave={(mb) => {
-                      setRamState((s) => ({ manualMb: { ...s.manualMb, [selectedPlan.app.name]: mb } }));
-                      toast.success("Manual RAM Target Saved", {
-                        description: `${selectedPlan.app.name}: ${fmtMb(mb)} working-set target. Other apps unchanged. (Simulated)`,
-                      });
-                    }}
-                    onReset={() => {
-                      setRamState((s) => {
-                        const next = { ...s.manualMb };
-                        delete next[selectedPlan.app.name];
-                        return { manualMb: next };
-                      });
-                      toast.info("Limit Reset", {
-                        description: `Reset ${selectedPlan.app.name} to its ${fmtMb(defaultManualMb(selectedPlan.app, sys))} default target.`,
-                      });
-                    }}
-                    mode={mode}
-                    foreground={fg}
-                    standbyPurged={standbyPurged}
-                    standbyMb={ramSummary.standbyMb}
-                    freeMb={ramSummary.availableMb + (standbyPurged ? standbyPurgeMb(mode, sys) : 0)}
-                    onPurgeStandby={handleSimulateStandbyFlush}
-                  />
-                )}
+                <Modal
+                  open={!!editingPlan}
+                  onClose={() => setEditingApp(null)}
+                  title={editingPlan ? `RAM Limit · ${editingPlan.app.title}` : "RAM Limit"}
+                  sub={editingPlan ? `${editingPlan.app.name} · applies to this application only` : undefined}
+                  width="max-w-3xl"
+                  icon={<Target className="h-4 w-4" />}
+                >
+                  {editingPlan && editingPlan.targetMb !== null && (
+                    <RamLimiterPanel
+                      key={editingPlan.app.name}
+                      appName={editingPlan.app.name}
+                      appTitle={editingPlan.app.title}
+                      workingSetMb={editingPlan.app.workingSetMb}
+                      savedMb={editingPlan.targetMb}
+                      defaultMb={defaultManualMb(editingPlan.app, sys)}
+                      minMb={appManualRange(editingPlan.app).minMb}
+                      overridden={editingPlan.manualOverride}
+                      onSave={(mb) => {
+                        const name = editingPlan.app.name;
+                        setRamState((s) => ({ manualMb: { ...s.manualMb, [name]: clampAppManualMb(editingPlan.app, mb) } }));
+                        setEditingApp(null);
+                        toast.success("Manual RAM Target Saved", {
+                          description: `${name}: ${fmtMb(mb)} target. Other apps keep their own targets. (Simulated — not enforced without the Windows service)`,
+                        });
+                      }}
+                      onReset={() => {
+                        clearManualOverride(editingPlan.app.name);
+                        toast.info("Limit Reset", {
+                          description: `Reset ${editingPlan.app.name} to its ${fmtMb(defaultManualMb(editingPlan.app, sys))} default target.`,
+                        });
+                      }}
+                      onClose={() => setEditingApp(null)}
+                      mode={mode}
+                      foreground={fg}
+                      standbyPurged={standbyPurged}
+                      standbyMb={ramSummary.standbyMb}
+                      freeMb={ramSummary.availableMb + (standbyPurged ? standbyPurgeMb(mode, sys) : 0)}
+                      onPurgeStandby={handleSimulateStandbyFlush}
+                    />
+                  )}
+                </Modal>
               </>
             )}
 
             {/* Configured targets for the active mode */}
+            {mode === "MANUAL" ? (
+              <Card>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-foreground">CONFIGURED MANUAL TARGETS</Label>
+                  <Badge tone="cyan">{manualOverrides.length} OVERRIDES</Badge>
+                </div>
+                <div className="space-y-2">
+                  {manualOverrides.map((p) => {
+                    const diff = (p.targetMb ?? 0) - p.app.workingSetMb;
+                    return (
+                      <div
+                        key={p.app.name}
+                        className="grid items-center gap-3 eo-list-row rounded-lg border border-border bg-window px-3 py-2 text-[12.5px]"
+                        style={{ gridTemplateColumns: "minmax(0,1fr) 130px 120px 110px auto" }}
+                      >
+                        <span className="font-semibold">{p.app.name}</span>
+                        <span className="font-mono text-[11.5px] text-muted-foreground tabular-nums">{p.app.workingSetMb} MB current</span>
+                        <span className="font-mono text-[11.5px] font-bold text-cyan tabular-nums">{p.targetMb} MB target</span>
+                        <span className={cn("text-right font-mono text-[11px] tabular-nums", diff < 0 ? "text-success" : "text-muted-foreground")}>
+                          {diff < 0 ? `−${-diff} MB` : `+${diff} MB`}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <Btn size="sm" variant="ghost" label={`Edit ${p.app.name} target`} title="Edit target" onClick={() => setEditingApp(p.app.name)}>
+                            <SlidersHorizontal className="h-3 w-3" />
+                          </Btn>
+                          <Btn
+                            size="sm"
+                            variant="ghost"
+                            label={`Delete ${p.app.name} manual target`}
+                            title="Delete manual override (restores the default target)"
+                            onClick={() => {
+                              clearManualOverride(p.app.name);
+                              toast.info("Manual Override Removed", {
+                                description: `${p.app.name} is back to its ${fmtMb(defaultManualMb(p.app, sys))} default target.`,
+                              });
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                          </Btn>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {manualOverrides.length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      No manual overrides yet. Use Configure RAM Limit on an application; every other app keeps its default target.
+                    </p>
+                  )}
+                </div>
+              </Card>
+            ) : (
             <Card>
               <div className="flex items-center justify-between mb-2">
                 <Label className="text-foreground">CONFIGURED {mode} TARGETS</Label>
@@ -663,6 +731,7 @@ export function AiOptimizationPage() {
                 )}
               </div>
             </Card>
+            )}
 
             {/* Eligible Background Applications */}
             <Card>
@@ -970,6 +1039,9 @@ export function AiOptimizationPage() {
 /* ── RAM Limiter panel: slider + numeric field edit one draft; Save commits it to the shared store ── */
 function RamLimiterPanel({
   appName,
+  appTitle,
+  minMb,
+  onClose,
   workingSetMb,
   savedMb,
   defaultMb,
@@ -984,6 +1056,9 @@ function RamLimiterPanel({
   onPurgeStandby,
 }: {
   appName: string;
+  appTitle: string;
+  minMb: number;
+  onClose: () => void;
   workingSetMb: number;
   savedMb: number;
   defaultMb: number;
@@ -1011,24 +1086,23 @@ function RamLimiterPanel({
   const aboveWs = draftMb > workingSetMb;
   const isGb = unit === "GB";
   const shown = isGb ? draftMb / 1024 : draftMb;
-  const setShown = (v: number) => setDraftMb(clampManualMb(isGb ? v * 1024 : v));
+  const clampDraft = (mb: number) => Math.max(minMb, clampManualMb(mb));
+  const setShown = (v: number) => setDraftMb(clampDraft(isGb ? v * 1024 : v));
   // Slider spans up to twice the working set (exact field still accepts up to 8 GB).
   const sliderMax = Math.min(MANUAL_MAX_MB, Math.max(1024, Math.ceil((workingSetMb * 2) / 256) * 256));
+  const wsDiff = draftMb - workingSetMb;
   return (
-    <Card className="eo-hero eo-ram">
+    <div className="eo-ram">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          <span className="eo-auto-mark" aria-hidden="true">
-            <Target className="h-4 w-4" />
-          </span>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-[15px] font-black uppercase">RAM Limiter · Manual Target</h2>
               <GuideTip id="ai.ram-limiter" />
               <Badge tone="warning">MANUAL LIMIT</Badge>
+              <Badge tone="muted">DEFAULT {defaultMb} MB</Badge>
             </div>
             <p className="mt-0.5 max-w-xl text-[11.5px] text-muted-foreground">
-              Set the working-set target of {appName} only — other applications keep their own targets. In this prototype the target is a simulated preview; a native Windows service would enforce it.
+              Sets a target for {appName} only — other applications keep their own targets. This is a configured target, not an enforced Windows working-set limit: enforcement needs the native Windows service. The app is never closed.
             </p>
           </div>
         </div>
@@ -1048,8 +1122,11 @@ function RamLimiterPanel({
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <Label className="text-[10px]">TARGET APPLICATION</Label>
-              <div className="text-[13px] font-bold">{appName}</div>
-              <div className="text-[11px] text-muted-foreground">Current working set · {workingSetMb} MB</div>
+              <div className="text-[13px] font-bold">{appTitle} <span className="font-mono text-[11px] font-normal text-muted-foreground">{appName}</span></div>
+              <div className="text-[11px] text-muted-foreground">Current working set · {workingSetMb} MB · Default target · {defaultMb} MB</div>
+              <div className={cn("text-[11px] font-bold tabular-nums", wsDiff < 0 ? "text-success" : "text-muted-foreground")}>
+                Estimated difference vs current: {wsDiff < 0 ? `−${-wsDiff}` : `+${wsDiff}`} MB
+              </div>
             </div>
             <div className="text-right">
               <Label className="text-[10px]">SYSTEM MEMORY · SAMPLE</Label>
@@ -1081,8 +1158,8 @@ function RamLimiterPanel({
             className="mt-3"
             label={`RAM target for ${appName}`}
             value={Math.min(draftMb, sliderMax)}
-            onChange={(v) => setDraftMb(clampManualMb(v))}
-            min={MANUAL_MIN_MB}
+            onChange={(v) => setDraftMb(clampDraft(v))}
+            min={minMb}
             max={sliderMax}
             step={16}
             valueText={fmtMb(draftMb)}
@@ -1120,14 +1197,14 @@ function RamLimiterPanel({
             label={`RAM target for ${appName} in ${isGb ? "gigabytes" : "megabytes"}`}
             value={shown}
             onChange={setShown}
-            min={isGb ? MANUAL_MIN_MB / 1024 : MANUAL_MIN_MB}
+            min={isGb ? minMb / 1024 : minMb}
             max={isGb ? MANUAL_MAX_MB / 1024 : MANUAL_MAX_MB}
             step={isGb ? 0.125 : 1}
             decimals={isGb ? 3 : 0}
             unit={unit}
           />
           <p className="text-[10.5px] text-subtle">
-            Valid range {MANUAL_MIN_MB} MB – 8 GB · arrow keys adjust · Escape restores
+            Safe range for this app {minMb} MB – 8 GB · arrow keys adjust · Escape restores
           </p>
 
           <Btn
@@ -1158,14 +1235,13 @@ function RamLimiterPanel({
             <Btn
               size="sm"
               variant="ghost"
-              disabled={!dirty}
-              onClick={() => setDraftMb(savedMb)}
-              title="Discard the change and return to the saved target"
+              onClick={onClose}
+              title="Close without saving"
             >
               Cancel
             </Btn>
           </div>
-          <Btn variant="primary" size="lg" disabled={!dirty} onClick={() => onSave(draftMb)}>
+          <Btn variant="primary" size="lg" disabled={!dirty && overridden} onClick={() => onSave(draftMb)}>
             Save target
           </Btn>
           <p className="text-[10.5px] text-muted-foreground" aria-live="polite">
@@ -1198,7 +1274,7 @@ function RamLimiterPanel({
           </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
 
