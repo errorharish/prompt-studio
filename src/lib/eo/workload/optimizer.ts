@@ -1,6 +1,10 @@
 // WorkloadOptimizer rules + WorkloadConflictManager. Pure functions.
 import type {
-  CpuPriority, OptimizationPlan, ResolvedWorkload, RunningWorkload, WorkloadCategory,
+  CpuPriority,
+  OptimizationPlan,
+  ResolvedWorkload,
+  RunningWorkload,
+  WorkloadCategory,
 } from "./types";
 
 export interface CategoryRule {
@@ -25,7 +29,12 @@ export const CATEGORY_RULES: Record<WorkloadCategory, CategoryRule> = {
     foregroundPriority: "HIGH",
     backgroundPriority: "ABOVE_NORMAL",
     weight: 4,
-    actions: ["CPU priority boost", "Exclusive core affinity", "Background updater throttle", "High timer resolution"],
+    actions: [
+      "CPU priority boost",
+      "Exclusive core affinity",
+      "Background updater throttle",
+      "High timer resolution",
+    ],
     memory: "Working set protected from RAM Limiter · standby refresh on launch",
     gpu: "High-performance GPU preference · hardware scheduling where supported",
     sampleMemMb: 4200,
@@ -118,7 +127,8 @@ export function resolveWorkloads(
     if (!fg && active.length > PRIORITY_INFLATION_LIMIT) priority = "NORMAL";
     const notes: string[] = [];
     if (fg) notes.push("Foreground app · protected");
-    if (affinity && give < rule.cores) notes.push(`Contention · ${give}/${rule.cores} cores available`);
+    if (affinity && give < rule.cores)
+      notes.push(`Contention · ${give}/${rule.cores} cores available`);
     if (!affinity) notes.push("Contention · shared cores (no exclusive affinity)");
     plans.set(w.pid, {
       plan: {
@@ -126,7 +136,9 @@ export function resolveWorkloads(
         affinity,
         memory: rule.memory,
         gpu: rule.gpu,
-        actions: affinity ? rule.actions : rule.actions.filter((a) => !a.toLowerCase().includes("affinity")),
+        actions: affinity
+          ? rule.actions
+          : rule.actions.filter((a) => !a.toLowerCase().includes("affinity")),
         notes,
         risk: priority === "HIGH" ? "Medium" : "Safe",
       },

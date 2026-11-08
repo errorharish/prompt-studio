@@ -1,15 +1,28 @@
 // Wires the workload services into one shared, event-driven UI store.
 // Custom apps persist in localStorage; running state comes only from process events.
 import { useSyncExternalStore } from "react";
-import { SimulatedWorkloadBackend, createWorkloadBackend, type WorkloadBackend } from "@/lib/eo/workload/backend";
 import {
-  addCustomApp, deleteCustomApp, makeCustomApp, parseStoredCustomApps, updateCustomApp, validateCustomApp,
+  SimulatedWorkloadBackend,
+  createWorkloadBackend,
+  type WorkloadBackend,
+} from "@/lib/eo/workload/backend";
+import {
+  addCustomApp,
+  deleteCustomApp,
+  makeCustomApp,
+  parseStoredCustomApps,
+  updateCustomApp,
+  validateCustomApp,
   type CustomAppInput,
 } from "@/lib/eo/workload/customApps";
 import { resolveWorkloads } from "@/lib/eo/workload/optimizer";
 import {
-  ApplicationLauncher, InstalledApplicationDiscovery, RunningProcessMonitor, WorkloadOptimizer,
-  reduceProcessEvent, type MonitorState,
+  ApplicationLauncher,
+  InstalledApplicationDiscovery,
+  RunningProcessMonitor,
+  WorkloadOptimizer,
+  reduceProcessEvent,
+  type MonitorState,
 } from "@/lib/eo/workload/services";
 import type { EligibleApp, ProcessEvent, ResolvedWorkload } from "@/lib/eo/workload/types";
 
@@ -28,8 +41,15 @@ export interface WorkloadView {
 }
 
 const EMPTY: WorkloadView = {
-  mode: "SIMULATED", discovered: [], custom: [], inventory: [], workloads: [], foregroundPid: null,
-  launching: [], scanning: false, lastScanAt: null,
+  mode: "SIMULATED",
+  discovered: [],
+  custom: [],
+  inventory: [],
+  workloads: [],
+  foregroundPid: null,
+  launching: [],
+  scanning: false,
+  lastScanAt: null,
 };
 
 let view: WorkloadView = EMPTY;
@@ -40,7 +60,9 @@ let launcher: ApplicationLauncher;
 let optimizer: WorkloadOptimizer;
 const listeners = new Set<() => void>();
 
-function emit() { listeners.forEach((l) => l()); }
+function emit() {
+  listeners.forEach((l) => l());
+}
 
 function set(patch: Partial<WorkloadView>) {
   const next = { ...view, ...patch };
@@ -64,7 +86,11 @@ function onProcessEvent(e: ProcessEvent) {
 }
 
 function saveCustom(list: EligibleApp[]) {
-  try { window.localStorage.setItem(CUSTOM_KEY, JSON.stringify(list)); } catch { /* storage unavailable */ }
+  try {
+    window.localStorage.setItem(CUSTOM_KEY, JSON.stringify(list));
+  } catch {
+    /* storage unavailable */
+  }
 }
 
 function init() {
@@ -74,7 +100,11 @@ function init() {
   launcher = new ApplicationLauncher(backend);
   optimizer = new WorkloadOptimizer(backend);
   let custom: EligibleApp[] = [];
-  try { custom = parseStoredCustomApps(JSON.parse(window.localStorage.getItem(CUSTOM_KEY) ?? "[]")); } catch { /* ignore */ }
+  try {
+    custom = parseStoredCustomApps(JSON.parse(window.localStorage.getItem(CUSTOM_KEY) ?? "[]"));
+  } catch {
+    /* ignore */
+  }
   set({ mode: backend.mode, custom });
   new RunningProcessMonitor(backend, onProcessEvent).start();
   void workloadActions.rescan();
@@ -83,11 +113,17 @@ function init() {
 function subscribe(l: () => void) {
   listeners.add(l);
   init();
-  return () => { listeners.delete(l); };
+  return () => {
+    listeners.delete(l);
+  };
 }
 
 export function useWorkloads(): WorkloadView {
-  return useSyncExternalStore(subscribe, () => view, () => EMPTY);
+  return useSyncExternalStore(
+    subscribe,
+    () => view,
+    () => EMPTY,
+  );
 }
 
 function sim(): SimulatedWorkloadBackend | null {
@@ -102,7 +138,10 @@ export const workloadActions = {
       const discovered = await discovery.scan();
       // Custom entries win over a discovered duplicate executable.
       const customExes = new Set(view.custom.map((c) => c.exe.toLowerCase()));
-      set({ discovered: discovered.filter((d) => !customExes.has(d.exe.toLowerCase())), lastScanAt: Date.now() });
+      set({
+        discovered: discovered.filter((d) => !customExes.has(d.exe.toLowerCase())),
+        lastScanAt: Date.now(),
+      });
     } finally {
       set({ scanning: false });
     }
@@ -110,25 +149,38 @@ export const workloadActions = {
   async launch(app: EligibleApp) {
     if (!backend || view.launching.includes(app.exe)) return;
     set({ launching: [...view.launching, app.exe] });
-    try { await launcher.launch(app); } catch (e) {
+    try {
+      await launcher.launch(app);
+    } catch (e) {
       set({ launching: view.launching.filter((x) => x !== app.exe) });
       throw e;
     }
   },
   stopOptimization(pid: number) {
-    monitorState = { ...monitorState, running: monitorState.running.map((w) => (w.pid === pid ? { ...w, paused: true } : w)) };
+    monitorState = {
+      ...monitorState,
+      running: monitorState.running.map((w) => (w.pid === pid ? { ...w, paused: true } : w)),
+    };
     recompute();
   },
   resumeOptimization(pid: number) {
-    monitorState = { ...monitorState, running: monitorState.running.map((w) => (w.pid === pid ? { ...w, paused: false } : w)) };
+    monitorState = {
+      ...monitorState,
+      running: monitorState.running.map((w) => (w.pid === pid ? { ...w, paused: false } : w)),
+    };
     recompute();
   },
   custom: {
-    validate(input: CustomAppInput, editingId?: string) { return validateCustomApp(input, view.inventory, editingId); },
+    validate(input: CustomAppInput, editingId?: string) {
+      return validateCustomApp(input, view.inventory, editingId);
+    },
     add(input: CustomAppInput) {
       const err = validateCustomApp(input, view.inventory);
       if (err) return err;
-      const custom = addCustomApp(view.custom, makeCustomApp(input, `custom:${Date.now().toString(36)}`));
+      const custom = addCustomApp(
+        view.custom,
+        makeCustomApp(input, `custom:${Date.now().toString(36)}`),
+      );
       saveCustom(custom);
       set({ custom });
       return null;
@@ -141,7 +193,9 @@ export const workloadActions = {
       const app = custom.find((c) => c.id === id)!;
       monitorState = {
         ...monitorState,
-        running: monitorState.running.map((w) => (w.appId === id ? { ...w, name: app.name, category: app.category } : w)),
+        running: monitorState.running.map((w) =>
+          w.appId === id ? { ...w, name: app.name, category: app.category } : w,
+        ),
       };
       set({ custom });
       recompute();
@@ -151,17 +205,30 @@ export const workloadActions = {
       const custom = deleteCustomApp(view.custom, id);
       saveCustom(custom);
       // Stop tracking it; the process itself is left running.
-      monitorState = { ...monitorState, running: monitorState.running.filter((w) => w.appId !== id) };
+      monitorState = {
+        ...monitorState,
+        running: monitorState.running.filter((w) => w.appId !== id),
+      };
       set({ custom });
       recompute();
     },
-    pickExecutable() { return backend?.mode === "NATIVE" ? backend.pickExecutable() : Promise.resolve(null); },
+    pickExecutable() {
+      return backend?.mode === "NATIVE" ? backend.pickExecutable() : Promise.resolve(null);
+    },
   },
   /** Browser-preview stand-ins for things that happen outside ERROR OPTIMIZER. */
   preview: {
-    available() { return !!sim(); },
-    externalStart(app: EligibleApp) { sim()?.simulateExternalStart(app); },
-    exit(pid: number) { sim()?.simulateExit(pid); },
-    focus(pid: number) { sim()?.simulateForeground(pid); },
+    available() {
+      return !!sim();
+    },
+    externalStart(app: EligibleApp) {
+      sim()?.simulateExternalStart(app);
+    },
+    exit(pid: number) {
+      sim()?.simulateExit(pid);
+    },
+    focus(pid: number) {
+      sim()?.simulateForeground(pid);
+    },
   },
 };

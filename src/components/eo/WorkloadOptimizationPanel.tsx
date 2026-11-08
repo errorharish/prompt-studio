@@ -6,7 +6,11 @@ import { Badge, Btn, Card, Chips, Label, Modal } from "./kit";
 import { PremiumSelect } from "./dropdown";
 import { useWorkloads, workloadActions } from "./workloadStore";
 import { fmtAffinity, fmtPriority, CATEGORY_RULES } from "@/lib/eo/workload/optimizer";
-import { WORKLOAD_CATEGORIES, type EligibleApp, type WorkloadCategory } from "@/lib/eo/workload/types";
+import {
+  WORKLOAD_CATEGORIES,
+  type EligibleApp,
+  type WorkloadCategory,
+} from "@/lib/eo/workload/types";
 import { cn } from "@/lib/utils";
 
 function useNow(active: boolean) {
@@ -28,8 +32,12 @@ function fmtDuration(ms: number) {
 }
 
 const SOURCE_LABEL: Record<EligibleApp["source"], string> = {
-  REGISTRY: "REGISTRY", INSTALL_DIR: "INSTALL DIR", KNOWN_PATH: "KNOWN PATH",
-  RUNNING_PROCESS: "RUNNING", CUSTOM: "CUSTOM", SAMPLE: "SAMPLE",
+  REGISTRY: "REGISTRY",
+  INSTALL_DIR: "INSTALL DIR",
+  KNOWN_PATH: "KNOWN PATH",
+  RUNNING_PROCESS: "RUNNING",
+  CUSTOM: "CUSTOM",
+  SAMPLE: "SAMPLE",
 };
 
 export function WorkloadOptimizationPanel() {
@@ -38,7 +46,12 @@ export function WorkloadOptimizationPanel() {
   const [inv, setInv] = useState("ALL");
   const now = useNow(wl.workloads.length > 0);
 
-  const [editor, setEditor] = useState<{ id?: string; name: string; path: string; category: WorkloadCategory } | null>(null);
+  const [editor, setEditor] = useState<{
+    id?: string;
+    name: string;
+    path: string;
+    category: WorkloadCategory;
+  } | null>(null);
   const [editorError, setEditorError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<EligibleApp | null>(null);
   const [externalPick, setExternalPick] = useState("");
@@ -48,11 +61,12 @@ export function WorkloadOptimizationPanel() {
 
   const launch = (app: EligibleApp) => {
     workloadActions.launch(app).then(
-      () => toast.success(`Launching ${app.name}`, {
-        description: sim
-          ? "Preview: process start simulated. Optimization activates automatically when it is detected. No real app was opened."
-          : "Optimization activates automatically when the process is detected.",
-      }),
+      () =>
+        toast.success(`Launching ${app.name}`, {
+          description: sim
+            ? "Preview: process start simulated. Optimization activates automatically when it is detected. No real app was opened."
+            : "Optimization activates automatically when the process is detected.",
+        }),
       (e: Error) => toast.error(`Could not launch ${app.name}`, { description: e.message }),
     );
   };
@@ -60,8 +74,13 @@ export function WorkloadOptimizationPanel() {
   const saveEditor = () => {
     if (!editor) return;
     const input = { name: editor.name, path: editor.path, category: editor.category };
-    const err = editor.id ? workloadActions.custom.update(editor.id, input) : workloadActions.custom.add(input);
-    if (err) { setEditorError(err); return; }
+    const err = editor.id
+      ? workloadActions.custom.update(editor.id, input)
+      : workloadActions.custom.add(input);
+    if (err) {
+      setEditorError(err);
+      return;
+    }
     toast.success(editor.id ? "Custom app updated" : "Custom app saved", {
       description: `${editor.name.trim()} · ${editor.category}. It will be optimized automatically when it starts.`,
     });
@@ -79,7 +98,8 @@ export function WorkloadOptimizationPanel() {
         <div className="flex items-center gap-2 rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-[11.5px] text-muted-foreground">
           <Badge tone="warning">BROWSER PREVIEW</Badge>
           <span>
-            No Windows backend connected. Inventory is sample data and launches, process detection and CPU/GPU changes are simulated. Nothing on this PC is changed.
+            No Windows backend connected. Inventory is sample data and launches, process detection
+            and CPU/GPU changes are simulated. Nothing on this PC is changed.
           </span>
         </div>
       )}
@@ -89,7 +109,9 @@ export function WorkloadOptimizationPanel() {
         <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
             <Label className="text-foreground">CURRENTLY RUNNING WORKLOADS</Label>
-            <Badge tone={wl.workloads.length > 0 ? "success" : "muted"}>{wl.workloads.length} ACTIVE</Badge>
+            <Badge tone={wl.workloads.length > 0 ? "success" : "muted"}>
+              {wl.workloads.length} ACTIVE
+            </Badge>
             <Badge tone="muted">AUTO-DETECT · ON</Badge>
           </div>
           {sim && notRunning.length > 0 && (
@@ -110,7 +132,8 @@ export function WorkloadOptimizationPanel() {
                   workloadActions.preview.externalStart(app);
                   setExternalPick("");
                   toast.info(`Preview: ${app.name} started outside Error Optimizer`, {
-                    description: "The process monitor will detect it and optimize it automatically. (Simulated)",
+                    description:
+                      "The process monitor will detect it and optimize it automatically. (Simulated)",
                   });
                 }}
               >
@@ -126,7 +149,8 @@ export function WorkloadOptimizationPanel() {
             <div>
               <div className="text-[13px] font-bold">NO SUPPORTED WORKLOAD RUNNING</div>
               <p className="text-xs text-muted-foreground">
-                Launch an eligible app below, or open it normally from Windows — it is detected and optimized automatically.
+                Launch an eligible app below, or open it normally from Windows — it is detected and
+                optimized automatically.
               </p>
             </div>
           </div>
@@ -147,15 +171,24 @@ export function WorkloadOptimizationPanel() {
                       <span className="text-xl">{paused ? "⏸" : "⚡"}</span>
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-[13px] font-bold text-foreground">{w.name.toUpperCase()}</span>
+                          <span className="text-[13px] font-bold text-foreground">
+                            {w.name.toUpperCase()}
+                          </span>
                           <Badge tone="cyan">{w.category}</Badge>
                           {w.foreground && <Badge tone="cyan">IN FOCUS</Badge>}
-                          <span className="font-mono text-[10.5px] text-muted-foreground">{w.exe}</span>
-                          <span className="font-mono text-[10.5px] text-muted-foreground">PID: {w.pid}</span>
+                          <span className="font-mono text-[10.5px] text-muted-foreground">
+                            {w.exe}
+                          </span>
+                          <span className="font-mono text-[10.5px] text-muted-foreground">
+                            PID: {w.pid}
+                          </span>
                         </div>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {w.origin === "EO_LAUNCH" ? "Launched from Error Optimizer" : "Detected · started outside Error Optimizer"}
-                          {" · "}Started {new Date(w.startedAt).toLocaleTimeString()} · Running {fmtDuration(now - w.startedAt)}
+                          {w.origin === "EO_LAUNCH"
+                            ? "Launched from Error Optimizer"
+                            : "Detected · started outside Error Optimizer"}
+                          {" · "}Started {new Date(w.startedAt).toLocaleTimeString()} · Running{" "}
+                          {fmtDuration(now - w.startedAt)}
                         </p>
                       </div>
                     </div>
@@ -163,31 +196,59 @@ export function WorkloadOptimizationPanel() {
                       {paused ? (
                         <Badge tone="muted">OPTIMIZATION STOPPED</Badge>
                       ) : (
-                        <Badge tone="success">{sim ? "OPTIMIZED · SIMULATED" : "OPTIMIZED · ACTIVE"}</Badge>
+                        <Badge tone="success">
+                          {sim ? "OPTIMIZED · SIMULATED" : "OPTIMIZED · ACTIVE"}
+                        </Badge>
                       )}
                       {paused ? (
-                        <Btn size="sm" variant="primary" onClick={() => {
-                          workloadActions.resumeOptimization(w.pid);
-                          toast.success(`Optimization resumed: ${w.name}`);
-                        }}>Resume Optimization</Btn>
+                        <Btn
+                          size="sm"
+                          variant="primary"
+                          onClick={() => {
+                            workloadActions.resumeOptimization(w.pid);
+                            toast.success(`Optimization resumed: ${w.name}`);
+                          }}
+                        >
+                          Resume Optimization
+                        </Btn>
                       ) : (
-                        <Btn size="sm" variant="ghost" onClick={() => {
-                          workloadActions.stopOptimization(w.pid);
-                          toast.info(`Optimization stopped: ${w.name}`, {
-                            description: "Windows defaults restored. The app keeps running.",
-                          });
-                        }}>Stop Optimization</Btn>
+                        <Btn
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            workloadActions.stopOptimization(w.pid);
+                            toast.info(`Optimization stopped: ${w.name}`, {
+                              description: "Windows defaults restored. The app keeps running.",
+                            });
+                          }}
+                        >
+                          Stop Optimization
+                        </Btn>
                       )}
                       {sim && !w.foreground && (
-                        <Btn size="sm" variant="ghost" title="Preview only: bring this app to the front"
-                          onClick={() => workloadActions.preview.focus(w.pid)}>Focus</Btn>
+                        <Btn
+                          size="sm"
+                          variant="ghost"
+                          title="Preview only: bring this app to the front"
+                          onClick={() => workloadActions.preview.focus(w.pid)}
+                        >
+                          Focus
+                        </Btn>
                       )}
                       {sim && (
-                        <Btn size="sm" variant="ghost" title="Preview only: pretend the user closed this app"
+                        <Btn
+                          size="sm"
+                          variant="ghost"
+                          title="Preview only: pretend the user closed this app"
                           onClick={() => {
                             workloadActions.preview.exit(w.pid);
-                            toast.info(`${w.name} exited`, { description: "Removed from running workloads. (Simulated)" });
-                          }}>Simulate exit</Btn>
+                            toast.info(`${w.name} exited`, {
+                              description: "Removed from running workloads. (Simulated)",
+                            });
+                          }}
+                        >
+                          Simulate exit
+                        </Btn>
                       )}
                     </div>
                   </div>
@@ -206,8 +267,16 @@ export function WorkloadOptimizationPanel() {
                   </div>
                   {(w.plan.actions.length > 0 || w.plan.notes.length > 0) && (
                     <div className="mt-2 flex flex-wrap gap-1.5">
-                      {w.plan.actions.map((a) => <Badge key={a} tone="success">{a}</Badge>)}
-                      {w.plan.notes.map((n) => <Badge key={n} tone={n.startsWith("Contention") ? "warning" : "muted"}>{n}</Badge>)}
+                      {w.plan.actions.map((a) => (
+                        <Badge key={a} tone="success">
+                          {a}
+                        </Badge>
+                      ))}
+                      {w.plan.notes.map((n) => (
+                        <Badge key={n} tone={n.startsWith("Contention") ? "warning" : "muted"}>
+                          {n}
+                        </Badge>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -217,7 +286,9 @@ export function WorkloadOptimizationPanel() {
               <div className="flex items-center gap-2 px-3 py-1.5 rounded border border-border bg-window text-[11px] text-muted-foreground">
                 <Sparkles className="h-3.5 w-3.5 text-cyan" />
                 <span>
-                  Conflict management: each workload has its own non-overlapping cores (cores 0–1 stay with Windows). Only the app in focus gets High priority; others are recalculated when focus changes.
+                  Conflict management: each workload has its own non-overlapping cores (cores 0–1
+                  stay with Windows). Only the app in focus gets High priority; others are
+                  recalculated when focus changes.
                 </span>
               </div>
             )}
@@ -229,12 +300,20 @@ export function WorkloadOptimizationPanel() {
       <Card>
         <div className="mb-3 flex items-center gap-2">
           <Label className="text-foreground">INSTALLED WORKLOAD INVENTORY</Label>
-          <Badge tone={sim ? "warning" : "success"}>{sim ? "SAMPLE DATA" : "DETECTED ON THIS PC"}</Badge>
+          <Badge tone={sim ? "warning" : "success"}>
+            {sim ? "SAMPLE DATA" : "DETECTED ON THIS PC"}
+          </Badge>
           <Badge tone="muted">{wl.inventory.length} ELIGIBLE</Badge>
         </div>
         <div className="mb-3 flex items-center justify-between">
           <Chips options={["ALL", ...WORKLOAD_CATEGORIES]} value={inv} onChange={setInv} />
-          <Btn size="sm" onClick={() => { setEditorError(null); setEditor({ name: "", path: "", category: "GAMES" }); }}>
+          <Btn
+            size="sm"
+            onClick={() => {
+              setEditorError(null);
+              setEditor({ name: "", path: "", category: "GAMES" });
+            }}
+          >
             + Add custom app
           </Btn>
         </div>
@@ -263,16 +342,39 @@ export function WorkloadOptimizationPanel() {
                     Auto: {CATEGORY_RULES[a.category].label}
                   </div>
                   <div className="flex items-center justify-between gap-2 border-t border-border pt-2 mt-1">
-                    <span className="font-mono text-[10px] text-subtle truncate max-w-[140px]" title={a.path}>{a.exe}</span>
+                    <span
+                      className="font-mono text-[10px] text-subtle truncate max-w-[140px]"
+                      title={a.path}
+                    >
+                      {a.exe}
+                    </span>
                     <div className="flex items-center gap-1">
                       {a.source === "CUSTOM" && (
                         <>
-                          <Btn size="sm" variant="ghost" label={`Edit ${a.name}`} title="Edit"
-                            onClick={() => { setEditorError(null); setEditor({ id: a.id, name: a.name, path: a.path, category: a.category }); }}>
+                          <Btn
+                            size="sm"
+                            variant="ghost"
+                            label={`Edit ${a.name}`}
+                            title="Edit"
+                            onClick={() => {
+                              setEditorError(null);
+                              setEditor({
+                                id: a.id,
+                                name: a.name,
+                                path: a.path,
+                                category: a.category,
+                              });
+                            }}
+                          >
                             <Pencil className="h-3 w-3" />
                           </Btn>
-                          <Btn size="sm" variant="ghost" label={`Delete ${a.name}`} title="Delete"
-                            onClick={() => setConfirmDelete(a)}>
+                          <Btn
+                            size="sm"
+                            variant="ghost"
+                            label={`Delete ${a.name}`}
+                            title="Delete"
+                            onClick={() => setConfirmDelete(a)}
+                          >
                             <Trash2 className="h-3 w-3" />
                           </Btn>
                         </>
@@ -280,7 +382,12 @@ export function WorkloadOptimizationPanel() {
                       {running ? (
                         <Badge tone="success">RUNNING</Badge>
                       ) : (
-                        <Btn size="sm" variant="outline" loading={launching} onClick={() => launch(a)}>
+                        <Btn
+                          size="sm"
+                          variant="outline"
+                          loading={launching}
+                          onClick={() => launch(a)}
+                        >
                           <Play className="h-3 w-3 mr-1" /> Launch
                         </Btn>
                       )}
@@ -316,8 +423,12 @@ export function WorkloadOptimizationPanel() {
         title={editor?.id ? "Edit Custom Application" : "Add Custom Application"}
         footer={
           <>
-            <Btn variant="ghost" onClick={() => setEditor(null)}>Cancel</Btn>
-            <Btn variant="primary" onClick={saveEditor}>Save</Btn>
+            <Btn variant="ghost" onClick={() => setEditor(null)}>
+              Cancel
+            </Btn>
+            <Btn variant="primary" onClick={saveEditor}>
+              Save
+            </Btn>
           </>
         }
       >
@@ -330,7 +441,10 @@ export function WorkloadOptimizationPanel() {
                 className="h-9 w-full rounded-lg border border-border bg-window px-3 text-sm focus:outline-none focus:border-cyan"
                 placeholder="e.g. Unreal Editor"
                 value={editor.name}
-                onChange={(e) => { setEditor({ ...editor, name: e.target.value }); setEditorError(null); }}
+                onChange={(e) => {
+                  setEditor({ ...editor, name: e.target.value });
+                  setEditorError(null);
+                }}
               />
             </div>
             <div>
@@ -341,10 +455,15 @@ export function WorkloadOptimizationPanel() {
                   className="h-9 w-full rounded-lg border border-border bg-window px-3 font-mono text-[12px] focus:outline-none focus:border-cyan"
                   placeholder="C:\Program Files\App\app.exe"
                   value={editor.path}
-                  onChange={(e) => { setEditor({ ...editor, path: e.target.value }); setEditorError(null); }}
+                  onChange={(e) => {
+                    setEditor({ ...editor, path: e.target.value });
+                    setEditorError(null);
+                  }}
                 />
                 {!sim && (
-                  <Btn variant="ghost" onClick={browse}><Folder className="h-3.5 w-3.5 mr-1" /> Browse</Btn>
+                  <Btn variant="ghost" onClick={browse}>
+                    <Folder className="h-3.5 w-3.5 mr-1" /> Browse
+                  </Btn>
                 )}
               </div>
             </div>
@@ -357,9 +476,14 @@ export function WorkloadOptimizationPanel() {
                 options={WORKLOAD_CATEGORIES}
               />
             </div>
-            {editorError && <p role="alert" className="text-xs text-destructive">{editorError}</p>}
+            {editorError && (
+              <p role="alert" className="text-xs text-destructive">
+                {editorError}
+              </p>
+            )}
             <p className="text-xs text-muted-foreground">
-              Optimization is chosen automatically from the category ({CATEGORY_RULES[editor.category].label}). Critical Windows processes cannot be added.
+              Optimization is chosen automatically from the category (
+              {CATEGORY_RULES[editor.category].label}). Critical Windows processes cannot be added.
             </p>
           </div>
         )}
@@ -374,18 +498,28 @@ export function WorkloadOptimizationPanel() {
         icon={<Trash2 className="h-4 w-4" />}
         footer={
           <>
-            <Btn variant="ghost" onClick={() => setConfirmDelete(null)}>Cancel</Btn>
-            <Btn variant="danger" onClick={() => {
-              if (!confirmDelete) return;
-              workloadActions.custom.remove(confirmDelete.id);
-              toast.info(`${confirmDelete.name} deleted`, { description: "Removed from the inventory. The app itself is not uninstalled." });
-              setConfirmDelete(null);
-            }}>Delete</Btn>
+            <Btn variant="ghost" onClick={() => setConfirmDelete(null)}>
+              Cancel
+            </Btn>
+            <Btn
+              variant="danger"
+              onClick={() => {
+                if (!confirmDelete) return;
+                workloadActions.custom.remove(confirmDelete.id);
+                toast.info(`${confirmDelete.name} deleted`, {
+                  description: "Removed from the inventory. The app itself is not uninstalled.",
+                });
+                setConfirmDelete(null);
+              }}
+            >
+              Delete
+            </Btn>
           </>
         }
       >
         <p className="text-[12.5px] text-muted-foreground">
-          {confirmDelete?.name} will be removed from the inventory and no longer optimized automatically. The program on your PC is not touched.
+          {confirmDelete?.name} will be removed from the inventory and no longer optimized
+          automatically. The program on your PC is not touched.
         </p>
       </Modal>
     </>

@@ -26,14 +26,25 @@ export function validateCustomApp(
 
 export function makeCustomApp(input: CustomAppInput, id: string): EligibleApp {
   const path = input.path.trim();
-  return { id, name: input.name.trim(), path, exe: exeFromPath(path), category: input.category, source: "CUSTOM" };
+  return {
+    id,
+    name: input.name.trim(),
+    path,
+    exe: exeFromPath(path),
+    category: input.category,
+    source: "CUSTOM",
+  };
 }
 
 export function addCustomApp(list: EligibleApp[], app: EligibleApp): EligibleApp[] {
   return [...list, app];
 }
 
-export function updateCustomApp(list: EligibleApp[], id: string, input: CustomAppInput): EligibleApp[] {
+export function updateCustomApp(
+  list: EligibleApp[],
+  id: string,
+  input: CustomAppInput,
+): EligibleApp[] {
   return list.map((a) => (a.id === id ? makeCustomApp(input, id) : a));
 }
 
@@ -43,9 +54,15 @@ export function deleteCustomApp(list: EligibleApp[], id: string): EligibleApp[] 
 
 export function parseStoredCustomApps(raw: unknown): EligibleApp[] {
   if (!Array.isArray(raw)) return [];
-  return raw.filter(
-    (a): a is EligibleApp =>
-      !!a && typeof a.id === "string" && typeof a.name === "string" && typeof a.path === "string" &&
-      typeof a.exe === "string" && ["GAMES", "CREATIVE", "VIDEO AI", "EMULATORS"].includes(a.category),
-  ).map((a) => ({ ...a, source: "CUSTOM" as const }));
+  return raw
+    .filter(
+      (a): a is EligibleApp =>
+        !!a &&
+        typeof a.id === "string" &&
+        typeof a.name === "string" &&
+        typeof a.path === "string" &&
+        typeof a.exe === "string" &&
+        ["GAMES", "CREATIVE", "VIDEO AI", "EMULATORS"].includes(a.category),
+    )
+    .map((a) => ({ ...a, source: "CUSTOM" as const }));
 }

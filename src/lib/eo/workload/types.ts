@@ -1,10 +1,16 @@
 // Shared types for the Workload Optimization engine. No React, no browser APIs.
 
 export type WorkloadCategory = "GAMES" | "CREATIVE" | "VIDEO AI" | "EMULATORS";
-export const WORKLOAD_CATEGORIES: WorkloadCategory[] = ["GAMES", "CREATIVE", "VIDEO AI", "EMULATORS"];
+export const WORKLOAD_CATEGORIES: WorkloadCategory[] = [
+  "GAMES",
+  "CREATIVE",
+  "VIDEO AI",
+  "EMULATORS",
+];
 
 /** Where an eligible application was found. SAMPLE = browser-preview data only. */
-export type DiscoverySource = "REGISTRY" | "INSTALL_DIR" | "KNOWN_PATH" | "RUNNING_PROCESS" | "CUSTOM" | "SAMPLE";
+export type DiscoverySource =
+  "REGISTRY" | "INSTALL_DIR" | "KNOWN_PATH" | "RUNNING_PROCESS" | "CUSTOM" | "SAMPLE";
 
 export interface EligibleApp {
   id: string;
@@ -64,8 +70,19 @@ export interface ProcessEvent {
 }
 
 export const SYSTEM_CRITICAL_EXES = [
-  "explorer.exe", "dwm.exe", "csrss.exe", "svchost.exe", "winlogon.exe", "lsass.exe",
-  "services.exe", "smss.exe", "wininit.exe", "system", "registry", "audiodg.exe", "fontdrvhost.exe",
+  "explorer.exe",
+  "dwm.exe",
+  "csrss.exe",
+  "svchost.exe",
+  "winlogon.exe",
+  "lsass.exe",
+  "services.exe",
+  "smss.exe",
+  "wininit.exe",
+  "system",
+  "registry",
+  "audiodg.exe",
+  "fontdrvhost.exe",
 ];
 
 export function isCriticalExe(exe: string): boolean {
