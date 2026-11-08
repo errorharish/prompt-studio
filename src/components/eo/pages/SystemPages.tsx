@@ -111,13 +111,15 @@ export function InputOptimizerPage() {
             "eo-mode-row-mark flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded border",
             isEligible
               ? "border-cyan bg-cyan text-sidebar-primary-foreground shadow-sm"
-              : "border-border bg-window text-subtle",
+              : canToggle
+                ? "border-border-strong bg-window text-subtle"
+                : "border-border bg-window text-subtle",
           )}
           aria-hidden="true"
         >
           {isEligible ? (
             <CheckIcon className="h-3 w-3" strokeWidth={3.5} />
-          ) : (
+          ) : canToggle ? null : (
             <Lock className="h-2.5 w-2.5" />
           )}
         </span>
