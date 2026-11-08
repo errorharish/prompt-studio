@@ -10,6 +10,7 @@ import {
   X,
   CheckCircle2,
   SlidersHorizontal,
+  Check as CheckIcon,
 } from "lucide-react";
 import {
   BackLink,

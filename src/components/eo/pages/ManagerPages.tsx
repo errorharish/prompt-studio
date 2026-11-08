@@ -1,5 +1,6 @@
 // StartupManagerView, ServiceManagerView, NetworkView, StorageView, ToolsView, ProcessReductionView
 import { useState, useMemo } from "react";
+import type { Risk } from "@/lib/eo/data";
 import { Check as CheckIcon, CheckCircle2, Lock, ShieldCheck } from "lucide-react";
 import {
   Badge,

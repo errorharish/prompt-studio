@@ -183,7 +183,7 @@ export function DemoBadge({ label = "DEMO" }: { label?: string | undefined }) {
 }
 
 /* ── Buttons (Theme/Buttons.xaml: Primary / Secondary / Ghost / Danger) ── */
-type BtnVariant = "primary" | "secondary" | "ghost" | "danger" | "success";
+type BtnVariant = "primary" | "secondary" | "ghost" | "danger" | "success" | "outline";
 const btnCls: Record<BtnVariant, string> = {
   primary:
     "eo-brand eo-btn-primary text-primary-foreground border-transparent hover:brightness-110",
@@ -193,6 +193,8 @@ const btnCls: Record<BtnVariant, string> = {
     "bg-transparent text-muted-foreground border-border hover:text-foreground hover:border-border-strong",
   danger: "bg-destructive/10 text-destructive border-destructive/40 hover:bg-destructive/20",
   success: "bg-success/10 text-success border-success/40 hover:bg-success/20",
+  // "outline" had no styles in the source; kept unstyled to render identically.
+  outline: "",
 };
 /**
  * `title` is the tooltip. The accessible name is the visible text; icon-only buttons

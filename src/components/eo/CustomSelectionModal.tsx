@@ -9,9 +9,9 @@ import {
   StatTiles,
   Chips,
 } from "./kit";
+import type { Risk } from "@/lib/eo/data";
 import {
   type PlanCandidate,
-  type Risk,
   getEligibilityStatus,
   isSelectable,
 } from "@/lib/eo/selection";

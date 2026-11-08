@@ -798,7 +798,7 @@ export function AiOptimizationPage() {
                       <span className="font-mono text-[11.5px] text-muted-foreground">
                         {app.workingSetMb} MB working set
                       </span>
-                      <ShieldCheck className="h-4 w-4 text-success" title="Background eligible" />
+                      <span title="Background eligible"><ShieldCheck className="h-4 w-4 text-success" /></span>
                     </div>
                   </div>
                 ))}
