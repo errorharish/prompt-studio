@@ -331,7 +331,7 @@ export function AiOptimizationPage() {
             </Badge>
           </>
         }
-        sub="Sample RAM limits, workload profiles and power recommendations; confirmation required."
+        sub="Sample RAM limits, automatic workload optimization and power recommendations; confirmation required."
       />
 
       {/* 2. Top Navigation Toolbar */}

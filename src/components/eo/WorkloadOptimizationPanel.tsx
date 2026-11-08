@@ -137,7 +137,7 @@ export function WorkloadOptimizationPanel() {
                   });
                 }}
               >
-                Simulate outside start
+                Start outside EO
               </Btn>
             </div>
           )}
