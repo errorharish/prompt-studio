@@ -193,10 +193,7 @@ export function AiOptimizationPage() {
   /* ────────────── 3. POWER PLAN GOVERNOR STATE ────────────── */
   const [powerPlans, setPowerPlans] = useState<PowerPlanItem[]>(DEFAULT_POWER_PLANS);
   const [activePowerPlan, setActivePowerPlan] = useState("AI Max Performance");
-  const [autoPowerPlan, setAutoPowerPlan] = useState(true); // Automatic power-plan selection
-  const [autoStartupPower, setAutoStartupPower] = useState(false);
-  const [cpuGovernor, setCpuGovernor] = useState(true);
-  const [thermalFreqLimit, setThermalFreqLimit] = useState(95);
+  const autoPowerPlan = true; // Automatic power-plan selection follows detected workloads
 
   // Automatic power plan follows detected workloads (start → AI Max, last exit → Balanced).
   const prevOptimized = useRef(activeWorkloads.length);
@@ -274,15 +271,6 @@ export function AiOptimizationPage() {
     });
   };
 
-  const handleResetPowerGovernor = () => {
-    setCpuGovernor(true);
-    setAutoPowerPlan(true);
-    setThermalFreqLimit(95);
-    toast.info("Power Plan Governor Reset", {
-      description: "Restored recommended defaults (Dynamic Governor active, Automatic Power Plan selection enabled).",
-    });
-  };
-
   const handleActivatePowerPlan = (p: string) => {
     setActivePowerPlan(p);
     toast.success(`Power Plan Activated: ${p}`, {
@@ -314,7 +302,6 @@ export function AiOptimizationPage() {
   const autoActionCount =
     (aiMasterEnabled ? 1 : 0) +
     wlSummary.autoActions +
-    (cpuGovernor ? 1 : 0) +
     (autoPowerPlan ? 1 : 0);
 
   return (
@@ -800,96 +787,6 @@ export function AiOptimizationPage() {
                   Refresh
                 </Btn>
               </div>
-            </Card>
-
-            {/* Power Plan Governor Configuration Card */}
-            <Card>
-              <div className="mb-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Label className="text-foreground">POWER PLAN GOVERNOR CONFIGURATION</Label>
-                  <Badge tone="cyan">ACTIVE TUNING</Badge>
-                </div>
-                <Btn size="sm" variant="ghost" onClick={handleResetPowerGovernor}>
-                  <RotateCcw className="h-3 w-3 mr-1" /> Reset to defaults
-                </Btn>
-              </div>
-              <div className="grid grid-cols-2 gap-2 mb-3">
-                <div className="flex items-center justify-between eo-list-row rounded-lg border border-border bg-window px-3 py-2.5 text-[12.5px]">
-                  <div>
-                    <div className="font-semibold">Dynamic CPU Power Governor</div>
-                    <p className="text-[10.5px] text-muted-foreground">
-                      Automated CPU frequency scaling based on real-time execution load
-                    </p>
-                  </div>
-                  <Toggle
-                    label="Dynamic CPU Power Governor"
-                    on={cpuGovernor}
-                    onChange={setCpuGovernor}
-                  />
-                </div>
-                <div className="flex items-center justify-between eo-list-row rounded-lg border border-border bg-window px-3 py-2.5 text-[12.5px]">
-                  <div>
-                    <div className="font-semibold">Automatic Power Plan Selection</div>
-                    <p className="text-[10.5px] text-muted-foreground">
-                      Auto-switches to AI Max Performance when games/workloads start, restores on exit
-                    </p>
-                  </div>
-                  <Toggle
-                    label="Automatic Power Plan Selection"
-                    on={autoPowerPlan}
-                    onChange={(v) => {
-                      setAutoPowerPlan(v);
-                      toast.info(v ? "Automatic Power Plan Engaged" : "Manual Plan Selection Active", {
-                        description: v
-                          ? "Power plan will now track running games and creative workloads automatically."
-                          : "Manual selection will remain active regardless of launched workloads.",
-                      });
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Thermal Frequency Limit Slider */}
-              <div className="rounded-lg border border-border bg-window p-3">
-                <div className="flex items-center justify-between mb-1">
-                  <Label className="text-foreground text-xs">
-                    THERMAL FREQUENCY LIMIT
-                  </Label>
-                  <span className="font-mono text-xs font-bold text-cyan">
-                    {thermalFreqLimit}%
-                  </span>
-                </div>
-                <p className="text-[11px] text-muted-foreground mb-2">
-                  Limits peak turbo clock speed during sustained thermal saturation to prevent thermal throttling and unstable frametimes.
-                </p>
-                <RangeSlider
-                  id="eo-thermal-limit"
-                  label="Thermal frequency limit"
-                  value={thermalFreqLimit}
-                  onChange={setThermalFreqLimit}
-                  min={80}
-                  max={100}
-                  step={1}
-                  valueText={`${thermalFreqLimit}%`}
-                  marks={[
-                    { value: 80, label: "80%" },
-                    { value: 95, label: "95% RECOMMENDED", tone: "success" },
-                    { value: 100, label: "100% UNLIMITED" },
-                  ]}
-                />
-              </div>
-            </Card>
-
-            <Card className="flex items-center justify-between">
-              <div>
-                <div className="text-[13px] font-bold">AUTO ENABLE ON WINDOWS STARTUP</div>
-                <p className="text-xs text-muted-foreground">Continuous Power Governor Enforcement</p>
-              </div>
-              <Toggle
-                label="Power plan startup policy"
-                on={autoStartupPower}
-                onChange={setAutoStartupPower}
-              />
             </Card>
 
             <Card>
