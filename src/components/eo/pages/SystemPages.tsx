@@ -67,37 +67,59 @@ import {
 import { CATALOG, HW } from "@/lib/eo/data";
 import { cn } from "@/lib/utils";
 
-/* ───────── INPUT OPTIMIZER (Global Eligible-Only Mode) ───────── */
+/* ───────── INPUT OPTIMIZER (ALL ELIGIBLE default + CUSTOM selection) ───────── */
 export function InputOptimizerPage() {
-  const plan = useMemo(() => buildExecutionPlan(INPUT_ITEMS, "AUTO"), []);
-  const eligibleIds = useMemo(() => new Set(plan.queue), [plan]);
-  const runItems = useMemo(
-    () => INPUT_ITEMS.filter((i) => eligibleIds.has(i.id)),
-    [eligibleIds],
-  );
+  // Same moded workflow as the other profiles; own storage key keeps it independent.
+  const inputSel = useModedSelection("input-optimizer", INPUT_ITEMS);
+  const { plan, sel } = inputSel;
+  const isCustom = inputSel.mode === "CUSTOM";
+  const runItems = useMemo(() => INPUT_ITEMS.filter((i) => sel.has(i.id)), [sel]);
 
   const test = useSimRun(2500);
   const [run, setRun] = useState(false);
   const [tested, setTested] = useState(false);
 
   const readRow = (i: InputItem) => {
-    const isEligible = eligibleIds.has(i.id);
-    const why = isEligible ? null : exclusionReason(i) ?? "Not applicable";
+    const isEligible = sel.has(i.id);
+    const lockedWhy = isSelectable(i) && !i.done ? null : exclusionReason(i) ?? "Not applicable";
+    const why = isEligible ? null : lockedWhy ?? "Not selected";
+    const canToggle = !lockedWhy;
 
     return (
-      <li key={i.id} className="eo-mode-row" data-included={isEligible ? "true" : undefined}>
+      <li
+        key={i.id}
+        className={cn("eo-mode-row", canToggle && "cursor-pointer select-none")}
+        data-included={isEligible ? "true" : undefined}
+        role={canToggle ? "checkbox" : undefined}
+        aria-checked={canToggle ? isEligible : undefined}
+        tabIndex={canToggle ? 0 : undefined}
+        title={canToggle && i.risk === "HIGH" ? "High-risk eligible action — review before applying" : undefined}
+        onClick={canToggle ? () => inputSel.toggle(i.id) : undefined}
+        onKeyDown={
+          canToggle
+            ? (e) => {
+                if (e.key === " " || e.key === "Enter") {
+                  e.preventDefault();
+                  inputSel.toggle(i.id);
+                }
+              }
+            : undefined
+        }
+      >
         <span
           className={cn(
             "eo-mode-row-mark flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded border",
             isEligible
               ? "border-cyan bg-cyan text-sidebar-primary-foreground shadow-sm"
-              : "border-border bg-window text-subtle",
+              : canToggle
+                ? "border-border-strong bg-window text-subtle"
+                : "border-border bg-window text-subtle",
           )}
           aria-hidden="true"
         >
           {isEligible ? (
             <CheckIcon className="h-3 w-3" strokeWidth={3.5} />
-          ) : (
+          ) : canToggle ? null : (
             <Lock className="h-2.5 w-2.5" />
           )}
         </span>
@@ -111,9 +133,15 @@ export function InputOptimizerPage() {
           {i.restart && <Badge tone="warning">RESTART</Badge>}
           <RiskBadge risk={i.risk} />
           {isEligible ? (
-            <Badge tone="success" className="text-[9.5px] font-bold tracking-wide">
-              AUTO-SELECTED — ELIGIBLE
-            </Badge>
+            isCustom ? (
+              <Badge tone="cyan" className="text-[9.5px] font-bold tracking-wide">
+                CUSTOM SELECTED
+              </Badge>
+            ) : (
+              <Badge tone="success" className="text-[9.5px] font-bold tracking-wide">
+                AUTO-SELECTED — ELIGIBLE
+              </Badge>
+            )
           ) : (
             <Badge tone="muted" className="text-[9.5px] font-semibold uppercase">
               {why?.toUpperCase()}
@@ -121,7 +149,7 @@ export function InputOptimizerPage() {
           )}
         </span>
         <span className="sr-only">
-          {isEligible ? "Auto-selected eligible" : `Excluded: ${why}`}
+          {isEligible ? (isCustom ? "Custom selected" : "Auto-selected eligible") : `Excluded: ${why}`}
         </span>
       </li>
     );
@@ -137,7 +165,7 @@ export function InputOptimizerPage() {
         badges={
           <>
             <Badge tone="cyan">LATENCY REDUCTION ENGINE</Badge>
-            <Badge tone="success">ELIGIBLE OPTIMIZATIONS ONLY</Badge>
+            <Badge tone={isCustom ? "cyan" : "success"}>{isCustom ? "CUSTOM SELECTION" : "ELIGIBLE OPTIMIZATIONS ONLY"}</Badge>
           </>
         }
         sub="Simulated pointer, keyboard and timer tuning · Authoritative eligible-only execution."
@@ -152,7 +180,7 @@ export function InputOptimizerPage() {
           { label: "MOUSE", value: "1:1 LINEAR", sub: "Sample pointer curve" },
           { label: "KEYBOARD", value: "31 / 0", sub: "Sample repeat / delay" },
           { label: "TIMER", value: "0.5 ms", sub: "Demo interval" },
-          { label: "ELIGIBLE QUEUED", value: runItems.length, tone: "cyan" },
+          { label: isCustom ? "CUSTOM QUEUED" : "ELIGIBLE QUEUED", value: runItems.length, tone: "cyan" },
         ]}
       />
 
@@ -167,23 +195,18 @@ export function InputOptimizerPage() {
             </Badge>
           }
         />
-        <div className="eo-sel-bar mb-3 flex flex-wrap items-center justify-between gap-2 py-1">
-          <div className="flex items-center gap-2">
-            <Badge tone="cyan" className="text-[10px] font-bold uppercase tracking-wider">
-              ELIGIBLE OPTIMIZATIONS ONLY
-            </Badge>
-            <span className="text-[11.5px] font-medium text-muted-foreground">
-              <b className="text-foreground tabular-nums font-bold">{runItems.length}</b> eligible items auto-selected
-              {plan.excluded.length > 0 && (
-                <span className="text-subtle ml-1.5">
-                  · {plan.excluded.length} ineligible/excluded
-                </span>
-              )}
-            </span>
-          </div>
-          <Badge tone="success" className="text-[10px] font-semibold tracking-wide">
-            AUTO-SELECTED — ELIGIBLE
-          </Badge>
+        <div className="mb-3">
+          <SelectionBar
+            count={sel.size}
+            total={inputSel.eligibleCount}
+            moded={inputSel}
+            title="Input Optimizer"
+          />
+          {plan.excluded.filter((e) => e.reason !== "Not selected").length > 0 && (
+            <p className="mt-1 text-[11px] text-subtle">
+              {plan.excluded.filter((e) => e.reason !== "Not selected").length} ineligible/excluded
+            </p>
+          )}
         </div>
 
         <div className="space-y-4">
@@ -205,11 +228,19 @@ export function InputOptimizerPage() {
 
       <div className="eo-action-bar flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3.5">
         <span className="text-[12px] text-muted-foreground">
-          <b className="text-foreground tabular-nums font-bold">{runItems.length}</b> optimizations auto-selected ·{" "}
-          <span className="text-success font-semibold">Eligible optimizations only</span>
+          <b className="text-foreground tabular-nums font-bold">{runItems.length}</b>{" "}
+          {isCustom ? "optimizations selected · " : "optimizations auto-selected · "}
+          <span className={cn("font-semibold", isCustom ? "text-cyan" : "text-success")}>
+            {isCustom ? "Custom selection only" : "Eligible optimizations only"}
+          </span>
+          {inputSel.highRiskSelectedCount > 0 && (
+            <span className="ml-1.5 text-warning font-semibold">
+              · {inputSel.highRiskSelectedCount} high-risk selected — review before applying
+            </span>
+          )}
         </span>
         <Btn variant="primary" disabled={!runItems.length} onClick={() => setRun(true)}>
-          Apply eligible optimizations ({runItems.length})
+          {isCustom ? "Apply selected optimizations" : "Apply eligible optimizations"} ({runItems.length})
         </Btn>
       </div>
 
@@ -397,6 +428,7 @@ export function RegistryTweakPage() {
   const [q, setQ] = useState("");
   const reg = useModedSelection("registry-tweak", REG_ITEMS);
   const { sel } = reg;
+  const regCustom = reg.mode === "CUSTOM";
   const [detail, setDetail] = useState<(typeof CATALOG)[number] | null>(null);
   const [run, setRun] = useState(false);
   const list = REG_LIST;
@@ -415,7 +447,7 @@ export function RegistryTweakPage() {
         badges={
           <>
             <Badge tone="cyan">LOW LATENCY & SCHEDULING</Badge>
-            <Badge tone="success">ELIGIBLE OPTIMIZATIONS ONLY</Badge>
+            <Badge tone={regCustom ? "cyan" : "success"}>{regCustom ? "CUSTOM SELECTION" : "ELIGIBLE OPTIMIZATIONS ONLY"}</Badge>
           </>
         }
         sub="Simulated registry tuning for scheduling, memory, gaming and privacy · Eligible-only execution."
@@ -425,12 +457,14 @@ export function RegistryTweakPage() {
           <Btn size="sm" variant="ghost" onClick={() => simulate("Refresh")}>
             Refresh
           </Btn>
-          <Badge tone="cyan" className="text-[10px] font-bold uppercase tracking-wider">
-            ELIGIBLE OPTIMIZATIONS ONLY
+          <Badge tone={regCustom ? "cyan" : "success"} className="text-[10px] font-bold uppercase tracking-wider">
+            {regCustom ? "CUSTOM SELECTION" : "ELIGIBLE OPTIMIZATIONS ONLY"}
           </Badge>
         </div>
         <p className="text-[11.5px] text-muted-foreground">
-          Authoritative catalog · all eligible items auto-selected by system compatibility.
+          {regCustom
+            ? "Custom selection · only the tweaks you select are applied."
+            : "Authoritative catalog · all eligible items auto-selected by system compatibility."}
         </p>
       </Card>
 
@@ -439,7 +473,7 @@ export function RegistryTweakPage() {
           { label: "DEMO HEALTH", value: "86%", tone: "success" },
           { label: "TOTAL", value: list.length },
           { label: "APPLICABLE", value: list.length - 3, tone: "cyan" },
-          { label: "AUTO-SELECTED", value: sel.size, tone: "success" },
+          { label: regCustom ? "SELECTED" : "AUTO-SELECTED", value: sel.size, tone: "success" },
           { label: "OPTIMIZED", value: 6, tone: "success" },
           { label: "NOT APPLICABLE", value: 3 },
           { label: "FAILED", value: 0, tone: "danger" },
@@ -456,17 +490,15 @@ export function RegistryTweakPage() {
         </div>
         <Chips options={REG_CATS} value={cat} onChange={setCat} />
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2.5">
+          <SelectionBar count={sel.size} total={reg.eligibleCount} moded={reg} title="Registry Intelligence" />
           <div className="flex items-center gap-2">
-            <Badge tone="success" className="text-[10px] font-bold tracking-wider">
-              AUTO-SELECTED — ELIGIBLE
-            </Badge>
-            <span className="text-[11.5px] text-muted-foreground">
-              <b className="text-foreground tabular-nums font-bold">{sel.size}</b> eligible tweaks queued
-            </span>
+            {reg.highRiskSelectedCount > 0 && (
+              <Badge tone="warning">{reg.highRiskSelectedCount} HIGH-RISK SELECTED</Badge>
+            )}
+            <Btn size="sm" variant="primary" disabled={!sel.size} onClick={() => setRun(true)}>
+              {regCustom ? "Apply selected tweaks" : "Apply eligible tweaks"} ({sel.size})
+            </Btn>
           </div>
-          <Btn size="sm" variant="primary" disabled={!sel.size} onClick={() => setRun(true)}>
-            Apply eligible tweaks ({sel.size})
-          </Btn>
         </div>
       </Card>
 
@@ -476,38 +508,63 @@ export function RegistryTweakPage() {
           {vis.map((i) => {
             const isEligible = sel.has(i.id);
             const isOptimized = i.state === "OPTIMIZED";
+            const canToggle = i.state === "PENDING";
 
             return (
               <div
                 key={i.id}
-                className="flex items-center gap-3 eo-list-row rounded-lg border border-border bg-window px-3 py-2 text-[12.5px]"
+                onClick={canToggle ? () => reg.toggle(i.id) : undefined}
+                title={canToggle && i.risk === "HIGH" ? "High-risk eligible tweak — review before applying" : undefined}
+                className={cn(
+                  "flex items-center gap-3 eo-list-row rounded-lg border px-3 py-2 text-[12.5px]",
+                  canToggle ? "cursor-pointer select-none" : "cursor-not-allowed opacity-75",
+                  isEligible ? "border-cyan/40 bg-cyan/5" : "border-border bg-window",
+                )}
               >
                 <span
                   className={cn(
                     "flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded border",
                     isEligible
                       ? "border-cyan bg-cyan text-sidebar-primary-foreground shadow-sm"
-                      : "border-border bg-window text-subtle",
+                      : canToggle
+                        ? "border-border-strong bg-window text-subtle"
+                        : "border-border bg-window text-subtle",
                   )}
-                  aria-hidden="true"
+                  role={canToggle ? "checkbox" : undefined}
+                  aria-checked={canToggle ? isEligible : undefined}
+                  aria-label={canToggle ? `Select ${i.name}` : undefined}
+                  aria-hidden={canToggle ? undefined : true}
                 >
                   {isEligible ? (
                     <CheckIcon className="h-3 w-3" strokeWidth={3.5} />
-                  ) : (
+                  ) : canToggle ? null : (
                     <Lock className="h-2.5 w-2.5" />
                   )}
                 </span>
                 <button
                   type="button"
                   className="flex-1 text-left font-medium hover:text-cyan"
-                  onClick={() => setDetail(i)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDetail(i);
+                  }}
                 >
                   {i.name}
                 </button>
                 <Badge>{i.cat}</Badge>
                 {isEligible ? (
-                  <Badge tone="success" className="text-[9.5px] font-bold tracking-wider">
-                    AUTO-SELECTED — ELIGIBLE
+                  regCustom ? (
+                    <Badge tone="cyan" className="text-[9.5px] font-bold tracking-wider">
+                      CUSTOM SELECTED
+                    </Badge>
+                  ) : (
+                    <Badge tone="success" className="text-[9.5px] font-bold tracking-wider">
+                      AUTO-SELECTED — ELIGIBLE
+                    </Badge>
+                  )
+                ) : canToggle ? (
+                  <Badge tone="muted" className="text-[9.5px] font-semibold">
+                    NOT SELECTED
                   </Badge>
                 ) : isOptimized ? (
                   <Badge tone="muted" className="text-[9.5px] font-semibold">
@@ -519,9 +576,11 @@ export function RegistryTweakPage() {
                   </Badge>
                 )}
                 <RiskBadge risk={i.risk} />
-                <Btn size="sm" variant="ghost" onClick={() => setDetail(i)}>
-                  Details
-                </Btn>
+                <span onClick={(e) => e.stopPropagation()}>
+                  <Btn size="sm" variant="ghost" onClick={() => setDetail(i)}>
+                    Details
+                  </Btn>
+                </span>
               </div>
             );
           })}
