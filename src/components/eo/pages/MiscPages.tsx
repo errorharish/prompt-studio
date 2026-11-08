@@ -26,7 +26,20 @@ import { GuideTip } from "../Guide";
 import { useAppearance } from "../Appearance";
 import { EffectsSettingsCard } from "../EffectsSettings";
 import { resetEffects } from "../effectsStore";
-import { NumberField, RangeSlider, Segmented } from "../controls";
+import { CountUp, NumberField, RangeSlider, Segmented } from "../controls";
+import { RAM_DEFAULTS, setRamState, useRamState } from "../ramLimiterStore";
+import {
+  MANUAL_MAX_MB,
+  MANUAL_MIN_MB,
+  RAM_MODES,
+  SAMPLE_APPS,
+  clampManualMb,
+  defaultManualMb,
+  fmtMb,
+  standbyPurgeMb,
+  summarize,
+  type RamMode,
+} from "@/lib/eo/ramLimiter";
 import {
   Activity,
   AlertCircle,
@@ -1457,33 +1470,51 @@ export function AiOptimizationPage() {
   );
 }
 
-/* ── RAM Limiter panel: slider + numeric field always share one value ── */
+/* ── RAM Limiter panel: slider + numeric field edit one draft; Save commits it to the shared store ── */
 function RamLimiterPanel({
-  appName = "chrome.exe",
-  value,
-  onChange,
-  enforced,
-  onEnforce,
+  appName,
+  workingSetMb,
+  savedMb,
+  defaultMb,
+  overridden,
+  onSave,
+  onReset,
   mode,
   foreground,
   standbyPurged,
+  standbyMb,
+  freeMb,
   onPurgeStandby,
-  onReset,
 }: {
-  appName?: string;
-  value: number;
-  onChange: (v: number) => void;
-  enforced: number | null;
-  onEnforce: () => void;
+  appName: string;
+  workingSetMb: number;
+  savedMb: number;
+  defaultMb: number;
+  overridden: boolean;
+  onSave: (mb: number) => void;
+  onReset: () => void;
   mode: string;
   foreground: boolean;
-  standbyPurged?: boolean;
-  onPurgeStandby?: () => void;
-  onReset?: () => void;
+  standbyPurged: boolean;
+  standbyMb: number;
+  freeMb: number;
+  onPurgeStandby: () => void;
 }) {
-  const dirty = enforced !== value;
-  const atDefault = value === RAM_DEFAULT_GB;
-  const share = (value / SYSTEM_RAM_GB) * 100;
+  const [draftMb, setDraftMb] = useState(savedMb);
+  const [unit, setUnit] = useState<"MB" | "GB">("MB");
+  // Follow external changes (reset, reload) while there is no unsaved edit.
+  const [lastSaved, setLastSaved] = useState(savedMb);
+  if (lastSaved !== savedMb) {
+    setLastSaved(savedMb);
+    setDraftMb(savedMb);
+  }
+  const dirty = draftMb !== savedMb;
+  const atDefault = draftMb === defaultMb;
+  const share = (draftMb / (SYSTEM_RAM_GB * 1024)) * 100;
+  const aboveWs = draftMb > workingSetMb;
+  const isGb = unit === "GB";
+  const shown = isGb ? draftMb / 1024 : draftMb;
+  const setShown = (v: number) => setDraftMb(clampManualMb(isGb ? v * 1024 : v));
   return (
     <Card className="eo-hero eo-ram">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1498,17 +1529,17 @@ function RamLimiterPanel({
               <Badge tone="warning">MANUAL LIMIT</Badge>
             </div>
             <p className="mt-0.5 max-w-xl text-[11.5px] text-muted-foreground">
-              Cap the working set of {appName} and purge inactive standby cache automatically. The limiter stays a passive monitor until you enforce the target — in this prototype, enforcing is simulated.
+              Set the working-set target of {appName} only — other applications keep their own targets. In this prototype the target is a simulated preview; a native Windows service would enforce it.
             </p>
           </div>
         </div>
         <span aria-live="polite">
-          {enforced === null ? (
-            <Badge tone="muted">NOT ENFORCED</Badge>
-          ) : dirty ? (
+          {dirty ? (
             <Badge tone="warning">UNSAVED CHANGE</Badge>
+          ) : overridden ? (
+            <Badge tone="success">SAVED · SIMULATED</Badge>
           ) : (
-            <Badge tone="success">ENFORCED · SIMULATED</Badge>
+            <Badge tone="muted">DEFAULT TARGET</Badge>
           )}
         </span>
       </div>
@@ -1519,26 +1550,29 @@ function RamLimiterPanel({
             <div>
               <Label className="text-[10px]">TARGET APPLICATION</Label>
               <div className="text-[13px] font-bold">{appName}</div>
+              <div className="text-[11px] text-muted-foreground">Current working set · {workingSetMb} MB</div>
             </div>
             <div className="text-right">
               <Label className="text-[10px]">SYSTEM MEMORY · SAMPLE</Label>
               <div className="text-[13px] font-semibold">
-                {SYSTEM_RAM_GB} GB total · {standbyPurged ? "21.6 GB free" : "19.8 GB free"}
+                {SYSTEM_RAM_GB} GB total · {fmtMb(freeMb)} free
               </div>
             </div>
           </div>
 
           <div className="mt-3 flex items-end gap-3">
             <div className="eo-ram-readout tabular-nums" aria-hidden="true">
-              {value.toFixed(2)}
-              <span>GB</span>
+              {isGb ? (draftMb / 1024).toFixed(2) : draftMb}
+              <span>{unit}</span>
             </div>
             <div className="pb-1.5 text-[11px] text-muted-foreground">
-              max working set · {share.toFixed(1)}% of system memory
-              <div className={cn("font-bold", atDefault ? "text-success" : "text-cyan")}>
-                {atDefault
-                  ? "RECOMMENDED CONFIGURATION"
-                  : `${value > RAM_DEFAULT_GB ? "+" : "−"}${Math.abs(value - RAM_DEFAULT_GB).toFixed(2)} GB vs recommended`}
+              target working set · {share.toFixed(1)}% of system memory
+              <div className={cn("font-bold", aboveWs ? "text-warning" : atDefault ? "text-success" : "text-cyan")}>
+                {aboveWs
+                  ? `Above current working set (${workingSetMb} MB) — nothing will be trimmed`
+                  : atDefault
+                    ? "DEFAULT TARGET"
+                    : `${draftMb > defaultMb ? "+" : "−"}${Math.abs(draftMb - defaultMb)} MB vs default · −${workingSetMb - draftMb} MB vs current`}
               </div>
             </div>
           </div>
@@ -1546,18 +1580,18 @@ function RamLimiterPanel({
           <RangeSlider
             id="eo-ram-limit"
             className="mt-3"
-            label={`Maximum RAM limit for ${appName}`}
-            value={value}
-            onChange={onChange}
-            min={RAM_MIN_GB}
-            max={RAM_MAX_GB}
-            step={RAM_STEP_GB}
-            valueText={gb(value)}
+            label={`RAM target for ${appName}`}
+            value={draftMb}
+            onChange={(v) => setDraftMb(clampManualMb(v))}
+            min={MANUAL_MIN_MB}
+            max={MANUAL_MAX_MB}
+            step={32}
+            valueText={fmtMb(draftMb)}
             marks={[
-              { value: RAM_MIN_GB, label: `MIN ${RAM_MIN_GB} GB` },
-              { value: RAM_DEFAULT_GB, label: `RECOMMENDED ${RAM_DEFAULT_GB} GB`, tone: "success" },
-              { value: 4, label: "4 GB" },
-              { value: RAM_MAX_GB, label: `MAX ${RAM_MAX_GB} GB` },
+              { value: MANUAL_MIN_MB, label: `MIN ${MANUAL_MIN_MB} MB` },
+              { value: defaultMb, label: `DEFAULT ${defaultMb} MB`, tone: "success" },
+              { value: 4096, label: "4 GB" },
+              { value: MANUAL_MAX_MB, label: "MAX 8 GB" },
             ]}
           />
 
@@ -1576,40 +1610,49 @@ function RamLimiterPanel({
         </div>
 
         <div className="eo-ram-side flex flex-col gap-2.5">
-          <label htmlFor="eo-ram-number" className="eo-label text-[10px] text-muted-foreground">
-            EXACT LIMIT
-          </label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="eo-ram-number" className="eo-label text-[10px] text-muted-foreground">
+              EXACT TARGET
+            </label>
+            <Segmented label="Target unit" options={["MB", "GB"]} value={unit} onChange={(u) => setUnit(u as "MB" | "GB")} />
+          </div>
           <NumberField
+            key={unit}
             id="eo-ram-number"
-            label={`Maximum RAM limit for ${appName} in gigabytes`}
-            value={value}
-            onChange={onChange}
-            min={RAM_MIN_GB}
-            max={RAM_MAX_GB}
-            step={RAM_STEP_GB}
-            unit="GB"
+            label={`RAM target for ${appName} in ${isGb ? "gigabytes" : "megabytes"}`}
+            value={shown}
+            onChange={setShown}
+            min={isGb ? MANUAL_MIN_MB / 1024 : MANUAL_MIN_MB}
+            max={isGb ? MANUAL_MAX_MB / 1024 : MANUAL_MAX_MB}
+            step={isGb ? 0.125 : 1}
+            decimals={isGb ? 3 : 0}
+            unit={unit}
           />
           <p className="text-[10.5px] text-subtle">
-            {RAM_MIN_GB}–{RAM_MAX_GB} GB in {RAM_STEP_GB} GB steps · arrow keys adjust
+            {MANUAL_MIN_MB} MB – 8 GB · arrow keys adjust · Escape restores
           </p>
 
           <Btn
             size="sm"
             variant="outline"
+            disabled={standbyPurged}
             onClick={onPurgeStandby}
             title="Purge unused standby memory cache"
           >
             <Trash2 aria-hidden="true" className="h-3 w-3 mr-1" />
-            Purge Standby ({standbyPurged ? "Clean" : "1.84 GB"})
+            Purge Standby ({standbyPurged ? "Clean" : fmtMb(standbyMb)})
           </Btn>
 
           <div className="grid grid-cols-2 gap-2">
             <Btn
               size="sm"
               variant="ghost"
-              disabled={atDefault}
-              onClick={onReset || (() => onChange(RAM_DEFAULT_GB))}
-              title="Reset to the recommended default (2 GB)"
+              disabled={!overridden && atDefault}
+              onClick={() => {
+                setDraftMb(defaultMb);
+                onReset();
+              }}
+              title={`Reset to the default target (${defaultMb} MB)`}
             >
               <RotateCcw aria-hidden="true" className="h-3 w-3" />
               Reset
@@ -1617,20 +1660,18 @@ function RamLimiterPanel({
             <Btn
               size="sm"
               variant="ghost"
-              disabled={enforced === null || !dirty}
-              onClick={() => enforced !== null && onChange(enforced)}
-              title="Discard the change and return to the enforced value"
+              disabled={!dirty}
+              onClick={() => setDraftMb(savedMb)}
+              title="Discard the change and return to the saved target"
             >
-              Revert
+              Cancel
             </Btn>
           </div>
-          <Btn variant="primary" size="lg" disabled={!dirty} onClick={onEnforce}>
-            Enforce target
+          <Btn variant="primary" size="lg" disabled={!dirty} onClick={() => onSave(draftMb)}>
+            Save target
           </Btn>
           <p className="text-[10.5px] text-muted-foreground" aria-live="polite">
-            {enforced === null
-              ? "No limit enforced yet."
-              : `Enforced at ${gb(enforced)} (simulated).`}
+            Saved target: {fmtMb(savedMb)} (simulated).
           </p>
         </div>
       </div>
@@ -1655,7 +1696,7 @@ function RamLimiterPanel({
         <div>
           <Label className="text-[10px]">HOW IT WORKS</Label>
           <div className="text-muted-foreground">
-            Pages above the limit are trimmed to standby; inactive cache is purged automatically.
+            Pages above the target are trimmed to standby; the app is never closed.
           </div>
         </div>
       </div>
