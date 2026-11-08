@@ -1,6 +1,6 @@
 // Native backend adapter. The C#/.NET 8 host (WebView2) implements these messages; the browser
 // preview uses SimulatedWorkloadBackend, which never claims real Windows changes.
-import type { EligibleApp, OptimizationPlan, ProcessEvent } from "./types";
+import type { EligibleApp, LaunchOrigin, OptimizationPlan, ProcessEvent } from "./types";
 
 export interface WorkloadBackend {
   readonly mode: "NATIVE" | "SIMULATED";
@@ -102,7 +102,7 @@ export class SimulatedWorkloadBackend implements WorkloadBackend {
     return pid;
   }
   private emit(e: ProcessEvent) { this.handlers.forEach((h) => h(e)); }
-  private start(app: EligibleApp, origin: ProcessEvent["origin"]) {
+  private start(app: EligibleApp, origin: LaunchOrigin) {
     const pid = this.newPid();
     this.live.add(pid);
     const fire = () => this.emit({ type: "process-start", pid, exe: app.exe, path: app.path, origin, at: Date.now() });
