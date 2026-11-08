@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { Folder, Pencil, Play, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge, Btn, Card, Chips, Label, Modal } from "./kit";
-import { PremiumSelect } from "./dropdown";
 import { useWorkloads, workloadActions } from "./workloadStore";
 import { fmtAffinity, fmtPriority, CATEGORY_RULES } from "@/lib/eo/workload/optimizer";
 import {
@@ -54,10 +53,8 @@ export function WorkloadOptimizationPanel() {
   } | null>(null);
   const [editorError, setEditorError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<EligibleApp | null>(null);
-  const [externalPick, setExternalPick] = useState("");
 
   const runningExes = new Set(wl.workloads.map((w) => w.exe.toLowerCase()));
-  const notRunning = wl.inventory.filter((a) => !runningExes.has(a.exe.toLowerCase()));
 
   const launch = (app: EligibleApp) => {
     workloadActions.launch(app).then(
@@ -114,33 +111,7 @@ export function WorkloadOptimizationPanel() {
             </Badge>
             <Badge tone="muted">AUTO-DETECT · ON</Badge>
           </div>
-          {sim && notRunning.length > 0 && (
-            <div className="flex items-center gap-2">
-              <PremiumSelect
-                size="sm"
-                label="App started outside Error Optimizer (preview)"
-                value={externalPick || notRunning[0]!.id}
-                onChange={setExternalPick}
-                options={notRunning.map((a) => ({ value: a.id, label: a.name }))}
-              />
-              <Btn
-                size="sm"
-                variant="ghost"
-                title="Preview only: pretend this app was opened normally from Windows"
-                onClick={() => {
-                  const app = notRunning.find((a) => a.id === externalPick) ?? notRunning[0]!;
-                  workloadActions.preview.externalStart(app);
-                  setExternalPick("");
-                  toast.info(`Preview: ${app.name} started outside Error Optimizer`, {
-                    description:
-                      "The process monitor will detect it and optimize it automatically. (Simulated)",
-                  });
-                }}
-              >
-                Start outside EO
-              </Btn>
-            </div>
-          )}
+
         </div>
 
         {wl.workloads.length === 0 ? (
@@ -158,6 +129,8 @@ export function WorkloadOptimizationPanel() {
           <div className="space-y-2">
             {wl.workloads.map((w) => {
               const paused = w.status === "PAUSED";
+              const result = wl.results[w.pid];
+              const applied = result?.plan;
               return (
                 <div
                   key={w.pid}
@@ -197,10 +170,14 @@ export function WorkloadOptimizationPanel() {
                         <Badge tone="muted">OPTIMIZATION STOPPED</Badge>
                       ) : wl.optimizing.includes(w.pid) ? (
                         <Badge tone="warning">OPTIMIZING…</Badge>
-                      ) : (
+                      ) : result?.phase === "FAILED" ? (
+                        <Badge tone="danger">OPTIMIZATION FAILED</Badge>
+                      ) : result?.phase === "OPTIMIZED" ? (
                         <Badge tone="success">
                           {sim ? "OPTIMIZED · SIMULATED" : "OPTIMIZED · ACTIVE"}
                         </Badge>
+                      ) : (
+                        <Badge tone="muted">AWAITING CONFIRMATION</Badge>
                       )}
                       {paused ? (
                         <Btn
@@ -219,47 +196,23 @@ export function WorkloadOptimizationPanel() {
                           variant="ghost"
                           onClick={() => {
                             workloadActions.stopOptimization(w.pid);
-                            toast.info(`Optimization stopped: ${w.name}`, {
-                              description: "Windows defaults restored. The app keeps running.",
-                            });
                           }}
                         >
                           Stop Optimization
                         </Btn>
                       )}
-                      {sim && !w.foreground && (
-                        <Btn
-                          size="sm"
-                          variant="ghost"
-                          title="Preview only: bring this app to the front"
-                          onClick={() => workloadActions.preview.focus(w.pid)}
-                        >
-                          Focus
-                        </Btn>
-                      )}
-                      {sim && (
-                        <Btn
-                          size="sm"
-                          variant="ghost"
-                          title="Preview only: pretend the user closed this app"
-                          onClick={() => {
-                            workloadActions.preview.exit(w.pid);
-                            toast.info(`${w.name} exited`, {
-                              description: "Removed from running workloads. (Simulated)",
-                            });
-                          }}
-                        >
-                          Simulate exit
-                        </Btn>
-                      )}
+
                     </div>
                   </div>
+                  {result?.error && (
+                    <p className="mt-2 text-[11px] text-warning">{result.error}</p>
+                  )}
                   <div className="mt-2 grid grid-cols-2 lg:grid-cols-4 gap-2 text-[11px]">
                     {[
-                      ["CPU PRIORITY", fmtPriority(w.plan.priority)],
-                      ["CPU AFFINITY", fmtAffinity(w.plan.affinity)],
-                      ["MEMORY", w.plan.memory],
-                      ["GPU", w.plan.gpu],
+                      ["CPU PRIORITY", applied ? fmtPriority(applied.priority) : "—"],
+                      ["CPU AFFINITY", applied ? fmtAffinity(applied.affinity) : "—"],
+                      ["MEMORY", applied?.memory || "—"],
+                      ["GPU", applied?.gpu || "—"],
                     ].map(([k, v]) => (
                       <div key={k} className="rounded border border-border bg-window px-2 py-1.5">
                         <div className="text-[9.5px] font-bold tracking-wider text-subtle">{k}</div>
@@ -267,9 +220,9 @@ export function WorkloadOptimizationPanel() {
                       </div>
                     ))}
                   </div>
-                  {(w.plan.actions.length > 0 || w.plan.notes.length > 0) && (
+                  {(applied?.actions.length || w.plan.notes.length > 0) && (
                     <div className="mt-2 flex flex-wrap gap-1.5">
-                      {w.plan.actions.map((a) => (
+                      {applied?.actions.map((a) => (
                         <Badge key={a} tone="success">
                           {a}
                         </Badge>
