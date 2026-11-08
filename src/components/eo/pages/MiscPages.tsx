@@ -1,5 +1,5 @@
 // AiOptimizationView, BackupRestoreView, SettingsView, AboutView, PerformanceTuningView
-import { useState, useMemo, type ReactNode } from "react";
+import { useEffect, useRef, useState, useMemo, type ReactNode } from "react";
 import {
   Badge,
   Bar,
@@ -70,6 +70,9 @@ import {
   Zap,
 } from "lucide-react";
 import { RestorePointDialog } from "../RestorePoint";
+import { WorkloadOptimizationPanel } from "../WorkloadOptimizationPanel";
+import { useWorkloads } from "../workloadStore";
+import { summarizeWorkloads } from "@/lib/eo/workload/optimizer";
 import { PremiumSelect } from "../dropdown";
 import { setRestoreState, useRestoreState } from "../restorePointStore";
 import { PROTECTION_SCENARIOS, SYSTEM_DRIVE } from "@/lib/eo/restorePoint";
@@ -194,6 +197,16 @@ export function AiOptimizationPage() {
   const [autoStartupPower, setAutoStartupPower] = useState(false);
   const [cpuGovernor, setCpuGovernor] = useState(true);
   const [thermalFreqLimit, setThermalFreqLimit] = useState(95);
+
+  // Automatic power plan follows detected workloads (start → AI Max, last exit → Balanced).
+  const prevOptimized = useRef(activeWorkloads.length);
+  useEffect(() => {
+    const prev = prevOptimized.current;
+    prevOptimized.current = activeWorkloads.length;
+    if (!autoPowerPlan || prev === activeWorkloads.length) return;
+    if (activeWorkloads.length > 0 && prev === 0) setActivePowerPlan("AI Max Performance");
+    if (activeWorkloads.length === 0) setActivePowerPlan("Balanced");
+  }, [activeWorkloads.length, autoPowerPlan]);
 
   /* Modal state for creating power plan */
   const [planModalOpen, setPlanModalOpen] = useState(false);
@@ -359,16 +372,26 @@ export function AiOptimizationPage() {
           {
             label: "RAM USAGE · SAMPLE",
             value: `${Math.round(
-              (ram.pressure - (standbyPurged ? standbyPurgeMb(mode, sys) / SAMPLE_SYS_TOTAL_MB : 0)) * 100,
+              Math.min(
+                0.99,
+                ram.pressure -
+                  (standbyPurged ? standbyPurgeMb(mode, sys) / SAMPLE_SYS_TOTAL_MB : 0) +
+                  wlSummary.memMb / SAMPLE_SYS_TOTAL_MB,
+              ) * 100,
             )}%`,
             sub: `${SYSTEM_RAM_GB} GB system memory`,
           },
           { label: "AUTO ACTIONS", value: autoActionCount },
-          { label: "BACKGROUND APPS", value: ramSummary.plans.filter((p) => !p.app.foreground && !p.app.critical).length },
+          {
+            label: "BACKGROUND APPS",
+            value:
+              ramSummary.plans.filter((p) => !p.app.foreground && !p.app.critical).length +
+              wlResolved.filter((w) => !w.foreground).length,
+          },
           { label: "ACTIVE WORKLOADS", value: activeWorkloads.length },
-          { label: "SAFE", value: 6, tone: "success" },
-          { label: "MEDIUM RISK", value: 1, tone: "warning" },
-          { label: "HIGH RISK", value: 0, tone: "danger" },
+          { label: "SAFE", value: wlSummary.safe, tone: "success" },
+          { label: "MEDIUM RISK", value: wlSummary.medium, tone: "warning" },
+          { label: "HIGH RISK", value: wlSummary.high, tone: "danger" },
         ]}
       />
 
