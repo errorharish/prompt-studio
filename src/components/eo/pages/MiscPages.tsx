@@ -26,7 +26,20 @@ import { GuideTip } from "../Guide";
 import { useAppearance } from "../Appearance";
 import { EffectsSettingsCard } from "../EffectsSettings";
 import { resetEffects } from "../effectsStore";
-import { NumberField, RangeSlider, Segmented } from "../controls";
+import { CountUp, NumberField, RangeSlider, Segmented } from "../controls";
+import { RAM_DEFAULTS, setRamState, useRamState } from "../ramLimiterStore";
+import {
+  MANUAL_MAX_MB,
+  MANUAL_MIN_MB,
+  RAM_MODES,
+  SAMPLE_APPS,
+  clampManualMb,
+  defaultManualMb,
+  fmtMb,
+  standbyPurgeMb,
+  summarize,
+  type RamMode,
+} from "@/lib/eo/ramLimiter";
 import {
   Activity,
   AlertCircle,
@@ -65,32 +78,13 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 /* ───────── AI OPTIMIZATION (3 sub-modules via top segmented control) ───────── */
-const RAM_MIN_GB = 0.5;
-const RAM_MAX_GB = 8;
-const RAM_STEP_GB = 0.25;
-const RAM_DEFAULT_GB = 2; // original prototype default (2048 MB); shown as the recommended mark
 const SYSTEM_RAM_GB = 32; // sample system memory (HW.ram)
-const gb = (v: number) => `${v.toFixed(2)} GB`;
-
-interface CustomTarget {
-  name: string;
-  limit: number;
-}
-
-interface EligibleBackgroundApp {
-  name: string;
-  category: "BROWSER" | "COMMUNICATION" | "LAUNCHER" | "MEDIA" | "UTILITY";
-  pid: number;
-  workingSetMb: number;
-  isBackground: true;
-}
-
-const DEFAULT_ELIGIBLE_BG_APPS: EligibleBackgroundApp[] = [
-  { name: "chrome.exe", category: "BROWSER", pid: 7420, workingSetMb: 1240, isBackground: true },
-  { name: "Discord.exe", category: "COMMUNICATION", pid: 11240, workingSetMb: 680, isBackground: true },
-  { name: "Spotify.exe", category: "MEDIA", pid: 8912, workingSetMb: 420, isBackground: true },
-  { name: "steamwebhelper.exe", category: "LAUNCHER", pid: 5630, workingSetMb: 510, isBackground: true },
-  { name: "EpicGamesLauncher.exe", category: "LAUNCHER", pid: 9812, workingSetMb: 390, isBackground: true },
+const SAMPLE_SYS_TOTAL_MB = SYSTEM_RAM_GB * 1024;
+const PRESSURE_OPTIONS: [string, number][] = [
+  ["LOW 38%", 0.38],
+  ["MODERATE 62%", 0.62],
+  ["HIGH 78%", 0.78],
+  ["CRITICAL 90%", 0.9],
 ];
 
 interface EligibleWorkload {
@@ -197,30 +191,23 @@ export function AiOptimizationPage() {
 
   /* ────────────────── 1. RAM LIMITER STATE ────────────────── */
   const [query, setQuery] = useState("");
-  // Presets: AUTO, LIGHT, AGGRESSIVE, and MANUAL mode
-  const [mode, setMode] = useState("AUTO");
-  const [trimInterval, setTrimInterval] = useState("10 MIN");
-  const [fg, setFg] = useState(true); // Foreground protection shield
-  const [standbyPurged, setStandbyPurged] = useState(false);
+  // One shared RAM Limiter configuration (persisted); every panel below reads it.
+  const ram = useRamState();
+  const { mode, trimInterval, foregroundProtection: fg, standbyPurged } = ram;
   const [selectedApp, setSelectedApp] = useState("chrome.exe");
-
-  // Independent manual RAM limits per eligible application
-  const [appManualLimits, setAppManualLimits] = useState<Record<string, number>>({
-    "chrome.exe": 2.0,
-    "Discord.exe": 0.75,
-    "Spotify.exe": 0.5,
-    "steamwebhelper.exe": 0.5,
-    "EpicGamesLauncher.exe": 0.5,
-  });
-
-  // Enforced limits per application
-  const [enforcedLimits, setEnforcedLimits] = useState<Record<string, number>>({
-    "chrome.exe": 2.0,
-  });
-
-  const [customTargets, setCustomTargets] = useState<CustomTarget[]>([
-    { name: "Discord.exe", limit: 1.0 },
-  ]);
+  const [aggressiveConfirm, setAggressiveConfirm] = useState(false);
+  const [modeBusy, setModeBusy] = useState(false);
+  const sys = useMemo(() => ({ totalMb: SAMPLE_SYS_TOTAL_MB, pressure: ram.pressure }), [ram.pressure]);
+  const ramSummary = useMemo(
+    () =>
+      summarize(
+        SAMPLE_APPS,
+        { mode, foregroundProtection: fg, manualMb: ram.manualMb, excluded: ram.excluded },
+        sys,
+        standbyPurged,
+      ),
+    [mode, fg, ram.manualMb, ram.excluded, sys, standbyPurged],
+  );
 
   /* ────────────── 2. WORKLOAD OPTIMIZER STATE ────────────── */
   const [inv, setInv] = useState("ALL");
@@ -269,11 +256,38 @@ export function AiOptimizationPage() {
   const [newAppCategory, setNewAppCategory] = useState("GAMES");
 
   /* Filtered eligible background applications */
-  const eligibleBgApps = useMemo(() => {
-    return DEFAULT_ELIGIBLE_BG_APPS.filter((app) =>
-      app.name.toLowerCase().includes(query.toLowerCase())
+  const visiblePlans = useMemo(() => {
+    const q = query.toLowerCase();
+    return ramSummary.plans.filter(
+      (p) => p.app.name.toLowerCase().includes(q) || p.app.title.toLowerCase().includes(q),
     );
-  }, [query]);
+  }, [ramSummary.plans, query]);
+  const manualPlans = visiblePlans.filter((p) => p.status === "ELIGIBLE");
+  const selectedPlan = ramSummary.plans.find((p) => p.app.name === selectedApp && p.status === "ELIGIBLE")
+    ?? ramSummary.plans.find((p) => p.status === "ELIGIBLE");
+
+  const applyMode = (m: RamMode) => {
+    if (modeBusy || m === mode) return;
+    setModeBusy(true);
+    setRamState({ mode: m, standbyPurged: false });
+    window.setTimeout(() => setModeBusy(false), 350);
+    const next = summarize(
+      SAMPLE_APPS,
+      { mode: m, foregroundProtection: fg, manualMb: ram.manualMb, excluded: ram.excluded },
+      sys,
+      standbyPurged,
+    );
+    toast.success(`RAM Limiter Mode: ${m}`, {
+      description:
+        m === "MANUAL"
+          ? "Manual mode active. Set an independent target for each background application."
+          : `${next.limited} background apps retargeted · ${fmtMb(next.reclaimMb)} reclaimable. (Simulated)`,
+    });
+  };
+  const requestMode = (m: string) => {
+    if (m === "AGGRESSIVE" && mode !== "AGGRESSIVE") setAggressiveConfirm(true);
+    else applyMode(m as RamMode);
+  };
 
   /* Handlers */
   const handleRefresh = () => {
@@ -284,25 +298,18 @@ export function AiOptimizationPage() {
   };
 
   const handleSimulateStandbyFlush = () => {
-    setStandbyPurged(true);
+    if (standbyPurged) return;
+    const purged = ramSummary.standbyMb;
+    setRamState({ standbyPurged: true });
     toast.success("Standby Memory Purged", {
-      description: "Purged 1.84 GB inactive standby cache. Free RAM expanded to 21.6 GB. (Simulated)",
+      description: `Purged ${fmtMb(purged)} inactive standby cache. Free RAM: ${fmtMb(ramSummary.availableMb + purged)}. (Simulated)`,
     });
   };
 
   const handleResetRamLimiter = () => {
-    setAppManualLimits({
-      "chrome.exe": RAM_DEFAULT_GB,
-      "Discord.exe": 0.75,
-      "Spotify.exe": 0.5,
-      "steamwebhelper.exe": 0.5,
-      "EpicGamesLauncher.exe": 0.5,
-    });
-    setMode("AUTO");
-    setTrimInterval("10 MIN");
-    setFg(true);
+    setRamState({ ...RAM_DEFAULTS });
     toast.info("RAM Limiter Reset", {
-      description: "Restored recommended defaults (Auto mode, 10 MIN interval, Foreground shield active).",
+      description: "Restored recommended defaults (Auto mode, 10 MIN interval, Foreground shield active, manual targets cleared).",
     });
   };
 
@@ -421,8 +428,6 @@ export function AiOptimizationPage() {
       },
     ]);
 
-    setCustomTargets((prev) => [...prev, { name: cleanName, limit: 1.5 }]);
-
     toast.success("Custom Workload Registered", {
       description: `Registered ${cleanName} under ${newAppCategory} with ${profile}.`,
     });
@@ -511,11 +516,13 @@ export function AiOptimizationPage() {
         items={[
           {
             label: "RAM USAGE · SAMPLE",
-            value: standbyPurged ? "32%" : "38%",
+            value: `${Math.round(
+              (ram.pressure - (standbyPurged ? standbyPurgeMb(mode, sys) / SAMPLE_SYS_TOTAL_MB : 0)) * 100,
+            )}%`,
             sub: `${SYSTEM_RAM_GB} GB system memory`,
           },
           { label: "AUTO ACTIONS", value: autoActionCount },
-          { label: "BACKGROUND APPS", value: eligibleBgApps.length },
+          { label: "BACKGROUND APPS", value: ramSummary.plans.filter((p) => !p.app.foreground && !p.app.critical).length },
           { label: "ACTIVE WORKLOADS", value: activeWorkloads.length },
           { label: "SAFE", value: 6, tone: "success" },
           { label: "MEDIUM RISK", value: 1, tone: "warning" },
@@ -553,12 +560,12 @@ export function AiOptimizationPage() {
                 ["ENGINE", "RAM Limiter (sample)"],
                 ["ACTIVE MODE", mode],
                 ["STRATEGY", mode === "MANUAL" ? "Per-Application Manual Limits" : "Working-set trim & standby purge"],
-                ["STARTUP", "Off"],
-                ["STATUS", aiMasterEnabled ? "Monitoring" : "Disabled"],
+                ["LIMITED APPS", `${ramSummary.limited} limited · ${ramSummary.protectedCount} protected`],
+                ["STATUS", aiMasterEnabled ? "Monitoring · simulated" : "Disabled"],
               ].map(([k, v]) => (
                 <div key={k}>
                   <Label className="text-[10px]">{k}</Label>
-                  <div className="text-[13px] font-semibold">{v}</div>
+                  <div key={v} className="eo-swap text-[13px] font-semibold">{v}</div>
                 </div>
               ))}
               <Badge tone={aiMasterEnabled ? "cyan" : "muted"}>
@@ -572,28 +579,22 @@ export function AiOptimizationPage() {
                   PROFILE / TARGET CONFIGURATION
                 </Label>
                 <Badge tone="success">
-                  {mode === "MANUAL" ? "MANUAL APPLICATION MODE" : `${mode} PRESET ACTIVE`}
+                  <span key={mode} className="eo-swap">
+                    {mode === "MANUAL" ? "MANUAL APPLICATION MODE" : `${mode} PRESET ACTIVE`}
+                  </span>
                 </Badge>
               </div>
               <p className="mb-3 text-xs text-muted-foreground">
-                Automated standby memory purge threshold and working-set limit configuration. Foreground applications remain strictly shielded from background RAM limits.
+                Per-application working-set targets are recalculated from system memory, memory pressure, app category and focus whenever the mode changes. Foreground applications and critical Windows processes are never limited. Targets are a preview — the browser cannot limit real processes.
               </p>
               <div className="mb-3 flex flex-wrap items-center gap-4">
-                <div className="flex items-center gap-2">
+                <div className={cn("flex items-center gap-2", modeBusy && "pointer-events-none")} aria-busy={modeBusy}>
                   <Label>ACTIVE MODE</Label>
                   <Segmented
                     label="RAM limiter mode"
-                    options={["AUTO", "LIGHT", "AGGRESSIVE", "MANUAL"]}
+                    options={RAM_MODES}
                     value={mode}
-                    onChange={(m) => {
-                      setMode(m);
-                      toast.info(`RAM Limiter Mode: ${m}`, {
-                        description:
-                          m === "MANUAL"
-                            ? "Manual mode active. Adjust RAM sliders independently for each selected application."
-                            : `${m} preset active. Slider hidden; autonomous working set management enabled.`,
-                      });
-                    }}
+                    onChange={requestMode}
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -601,12 +602,23 @@ export function AiOptimizationPage() {
                   <Chips
                     options={["5 MIN", "10 MIN", "15 MIN", "30 MIN"]}
                     value={trimInterval}
-                    onChange={setTrimInterval}
+                    onChange={(v) => setRamState({ trimInterval: v })}
                   />
                 </div>
                 <span className="ml-auto flex items-center gap-2">
                   <Label>FOREGROUND PROTECTION</Label>
-                  <Toggle label="Foreground protection" on={fg} onChange={setFg} />
+                  <Toggle
+                    label="Foreground protection"
+                    on={fg}
+                    onChange={(v) => {
+                      setRamState({ foregroundProtection: v });
+                      toast.info(v ? "Foreground Shield On" : "Foreground Shield Off", {
+                        description: v
+                          ? "The app in focus is exempt from RAM targets."
+                          : "The app in focus now receives a target like other background apps. (Simulated)",
+                      });
+                    }}
+                  />
                 </span>
               </div>
               <div className="mb-2 flex items-center justify-between">
@@ -632,21 +644,35 @@ export function AiOptimizationPage() {
                     <Label as="h2" className="text-foreground font-bold">
                       AUTOMATIC {mode} PRESET ACTIVE
                     </Label>
-                    <Badge tone="success">AUTONOMOUS ENFORCEMENT</Badge>
+                    <Badge tone="success">SIMULATED ENFORCEMENT</Badge>
                   </div>
-                  <Btn size="sm" variant="outline" onClick={handleSimulateStandbyFlush}>
+                  <Btn size="sm" variant="outline" disabled={standbyPurged} onClick={handleSimulateStandbyFlush}>
                     <Trash2 aria-hidden="true" className="h-3 w-3 mr-1" />
-                    Purge Standby ({standbyPurged ? "Clean" : "1.84 GB"})
+                    Purge Standby ({standbyPurged ? "Clean" : fmtMb(ramSummary.standbyMb)})
                   </Btn>
                 </div>
                 <p className="mb-3 text-xs text-muted-foreground">
                   {mode === "AUTO" &&
-                    "Autonomous Working-Set Trim — Dynamically reclaims unused working sets when system memory pressure exceeds 70%, keeping foreground applications responsive."}
+                    "Adaptive Working-Set Trim — targets follow memory pressure: almost no trimming below 60%, progressively tighter targets up to 90%, foreground applications stay responsive."}
                   {mode === "LIGHT" &&
-                    "Gentle Standby Maintenance — Purges standby memory cache periodically without trimming active application working sets. Ideal for general desktop multitasking."}
+                    "Gentle Maintenance — keeps about 85% of each background working set and purges half of the standby cache. Ideal for general desktop multitasking."}
                   {mode === "AGGRESSIVE" &&
-                    "Aggressive Background Trimming — Proactively compacts idle background application working sets every trim cycle. Maximizes free RAM for competitive games."}
+                    "Aggressive Background Trimming — keeps about 55% of each background working set (never below the app's safe floor) and purges the full standby cache. Maximizes free RAM for competitive games."}
                 </p>
+                {mode === "AUTO" && (
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <Label>SIMULATED MEMORY PRESSURE</Label>
+                    <Chips
+                      label="Simulated memory pressure"
+                      options={PRESSURE_OPTIONS.map(([l]) => l)}
+                      value={PRESSURE_OPTIONS.find(([, v]) => v === ram.pressure)?.[0] ?? "LOW 38%"}
+                      onChange={(l) => {
+                        const v = PRESSURE_OPTIONS.find(([x]) => x === l)?.[1] ?? 0.38;
+                        setRamState({ pressure: v });
+                      }}
+                    />
+                  </div>
+                )}
                 <div className="grid grid-cols-4 gap-3 border-t border-border pt-3 text-[11.5px]">
                   <div>
                     <Label className="text-[10px]">AUTO TRIM INTERVAL</Label>
@@ -654,8 +680,14 @@ export function AiOptimizationPage() {
                   </div>
                   <div>
                     <Label className="text-[10px]">STANDBY CACHE PURGE</Label>
-                    <div className="font-semibold text-cyan">
-                      {standbyPurged ? "Clean (0 MB)" : "1.84 GB Pending"}
+                    <div className="font-semibold text-cyan tabular-nums">
+                      {standbyPurged ? "Clean (0 MB)" : `${fmtMb(ramSummary.standbyMb)} Pending`}
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-[10px]">PENDING RECLAIM</Label>
+                    <div className="font-semibold text-foreground tabular-nums">
+                      <CountUp value={ramSummary.reclaimMb} /> MB · {ramSummary.limited} apps
                     </div>
                   </div>
                   <div>
@@ -664,10 +696,6 @@ export function AiOptimizationPage() {
                       {fg ? "Active · Protected" : "Exemptions Off"}
                     </div>
                   </div>
-                  <div>
-                    <Label className="text-[10px]">MONITORED BACKGROUND APPS</Label>
-                    <div className="font-semibold text-foreground">{eligibleBgApps.length} Running</div>
-                  </div>
                 </div>
               </Card>
             )}
@@ -675,102 +703,112 @@ export function AiOptimizationPage() {
             {/* MANUAL MODE: RAM Slider is displayed ONLY in Manual mode for individually selected application */}
             {mode === "MANUAL" && (
               <>
-                {/* Application Selector for Manual Limits */}
                 <Card>
                   <div className="flex items-center justify-between mb-2">
                     <Label className="text-foreground">SELECT APPLICATION FOR INDEPENDENT RAM LIMIT</Label>
-                    <Badge tone="cyan">{eligibleBgApps.length} ELIGIBLE BACKGROUND APPS</Badge>
+                    <Badge tone="cyan">{manualPlans.length} ELIGIBLE BACKGROUND APPS</Badge>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {eligibleBgApps.map((app) => {
-                      const isSelected = selectedApp === app.name;
-                      const appLimit = appManualLimits[app.name] ?? 1.5;
+                    {manualPlans.map((p) => {
+                      const isSelected = selectedPlan?.app.name === p.app.name;
                       return (
-                        <div
-                          key={app.name}
-                          onClick={() => setSelectedApp(app.name)}
+                        <button
+                          type="button"
+                          key={p.app.name}
+                          aria-pressed={isSelected}
+                          onClick={() => setSelectedApp(p.app.name)}
                           className={cn(
-                            "flex flex-col gap-1 p-2.5 rounded-lg border cursor-pointer transition-colors text-[12px]",
+                            "flex flex-col gap-1 p-2.5 rounded-lg border cursor-pointer transition-colors text-left text-[12px]",
                             isSelected
                               ? "border-cyan/60 bg-cyan/10 shadow-sm shadow-cyan/10"
                               : "border-border bg-window hover:border-border-strong"
                           )}
                         >
-                          <div className="flex items-center justify-between font-semibold">
-                            <span className="truncate">{app.name}</span>
-                            <Badge tone={isSelected ? "cyan" : "muted"}>{app.category}</Badge>
+                          <div className="flex w-full items-center justify-between font-semibold">
+                            <span className="truncate">{p.app.name}</span>
+                            <Badge tone={isSelected ? "cyan" : "muted"}>{p.manualOverride ? "CUSTOM" : p.app.category}</Badge>
                           </div>
-                          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                            <span>{app.workingSetMb} MB current</span>
-                            <span className="font-mono text-cyan font-bold">{appLimit.toFixed(2)} GB limit</span>
+                          <div className="flex w-full items-center justify-between text-[11px] text-muted-foreground">
+                            <span>{p.app.workingSetMb} MB current</span>
+                            <span className="font-mono text-cyan font-bold tabular-nums">{p.targetMb} MB target</span>
                           </div>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
                 </Card>
 
-                {/* RamLimiterPanel: Slider rendered ONLY in Manual mode */}
-                <RamLimiterPanel
-                  appName={selectedApp}
-                  value={appManualLimits[selectedApp] ?? RAM_DEFAULT_GB}
-                  onChange={(val) => {
-                    setAppManualLimits((prev) => ({ ...prev, [selectedApp]: val }));
-                  }}
-                  enforced={enforcedLimits[selectedApp] ?? null}
-                  onEnforce={() => {
-                    const currentVal = appManualLimits[selectedApp] ?? RAM_DEFAULT_GB;
-                    setEnforcedLimits((prev) => ({ ...prev, [selectedApp]: currentVal }));
-                    simulate(`Enforce ${currentVal.toFixed(2)} GB limit for ${selectedApp}`);
-                    toast.success("Manual RAM Target Enforced", {
-                      description: `Enforced ${currentVal.toFixed(2)} GB working-set ceiling for ${selectedApp}. (Simulated)`,
-                    });
-                  }}
-                  mode={mode}
-                  foreground={fg}
-                  standbyPurged={standbyPurged}
-                  onPurgeStandby={handleSimulateStandbyFlush}
-                  onReset={() => {
-                    setAppManualLimits((prev) => ({ ...prev, [selectedApp]: RAM_DEFAULT_GB }));
-                    toast.info("Limit Reset", {
-                      description: `Reset ${selectedApp} to ${RAM_DEFAULT_GB.toFixed(2)} GB recommended target.`,
-                    });
-                  }}
-                />
+                {selectedPlan && selectedPlan.targetMb !== null && (
+                  <RamLimiterPanel
+                    key={selectedPlan.app.name}
+                    appName={selectedPlan.app.name}
+                    workingSetMb={selectedPlan.app.workingSetMb}
+                    savedMb={selectedPlan.targetMb}
+                    defaultMb={defaultManualMb(selectedPlan.app, sys)}
+                    overridden={selectedPlan.manualOverride}
+                    onSave={(mb) => {
+                      setRamState((s) => ({ manualMb: { ...s.manualMb, [selectedPlan.app.name]: mb } }));
+                      toast.success("Manual RAM Target Saved", {
+                        description: `${selectedPlan.app.name}: ${fmtMb(mb)} working-set target. Other apps unchanged. (Simulated)`,
+                      });
+                    }}
+                    onReset={() => {
+                      setRamState((s) => {
+                        const next = { ...s.manualMb };
+                        delete next[selectedPlan.app.name];
+                        return { manualMb: next };
+                      });
+                      toast.info("Limit Reset", {
+                        description: `Reset ${selectedPlan.app.name} to its ${fmtMb(defaultManualMb(selectedPlan.app, sys))} default target.`,
+                      });
+                    }}
+                    mode={mode}
+                    foreground={fg}
+                    standbyPurged={standbyPurged}
+                    standbyMb={ramSummary.standbyMb}
+                    freeMb={ramSummary.availableMb + (standbyPurged ? standbyPurgeMb(mode, sys) : 0)}
+                    onPurgeStandby={handleSimulateStandbyFlush}
+                  />
+                )}
               </>
             )}
 
-            {/* Configured Custom Targets */}
+            {/* Configured targets for the active mode */}
             <Card>
               <div className="flex items-center justify-between mb-2">
-                <Label className="text-foreground">CONFIGURED CUSTOM TARGETS</Label>
-                <Badge tone="cyan">{customTargets.length} TARGETS</Badge>
+                <Label className="text-foreground">CONFIGURED {mode} TARGETS</Label>
+                <Badge tone="cyan">{ramSummary.limited} TARGETS · {fmtMb(ramSummary.reclaimMb)} RECLAIM</Badge>
               </div>
               <div className="space-y-2">
-                {customTargets.map((ct) => (
-                  <div
-                    key={ct.name}
-                    className="grid items-center gap-3 eo-list-row rounded-lg border border-border bg-window px-3 py-2 text-[12.5px]"
-                    style={{ gridTemplateColumns: "minmax(0,1fr) 160px auto auto" }}
-                  >
-                    <span className="font-semibold">{ct.name}</span>
-                    <Bar value={(ct.limit / RAM_MAX_GB) * 100} />
-                    <span className="text-right font-mono text-[11.5px] text-muted-foreground">
-                      {ct.limit.toFixed(2)} GB limit
-                    </span>
-                    <Btn
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        setCustomTargets((prev) => prev.filter((x) => x.name !== ct.name));
-                        toast.info("Target Removed", { description: `Removed ${ct.name} custom target.` });
-                      }}
-                      title="Remove custom limit"
+                {ramSummary.plans
+                  .filter((p) => p.targetMb !== null)
+                  .map((p) => (
+                    <div
+                      key={p.app.name}
+                      className="grid items-center gap-3 eo-list-row rounded-lg border border-border bg-window px-3 py-2 text-[12.5px]"
+                      style={{ gridTemplateColumns: "minmax(0,1fr) 160px 150px auto" }}
                     >
-                      <Trash2 className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                    </Btn>
-                  </div>
-                ))}
+                      <span className="font-semibold">{p.app.name}</span>
+                      <Bar value={((p.targetMb ?? 0) / p.app.workingSetMb) * 100} />
+                      <span className="text-right font-mono text-[11.5px] text-muted-foreground tabular-nums">
+                        {p.targetMb} / {p.app.workingSetMb} MB
+                      </span>
+                      <Btn
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setRamState((s) => ({ excluded: [...s.excluded, p.app.name] }));
+                          toast.info("App Excluded", { description: `${p.app.name} will not receive a RAM target.` });
+                        }}
+                        title="Exclude this app from the RAM Limiter"
+                      >
+                        <Trash2 className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                      </Btn>
+                    </div>
+                  ))}
+                {ramSummary.limited === 0 && (
+                  <p className="text-xs text-muted-foreground">No application receives a target in this configuration.</p>
+                )}
               </div>
             </Card>
 
@@ -778,32 +816,85 @@ export function AiOptimizationPage() {
             <Card>
               <div className="flex items-center justify-between mb-2">
                 <Label className="text-foreground">ELIGIBLE BACKGROUND APPLICATIONS</Label>
-                <Badge tone="success">FOREGROUND SHIELD ACTIVE</Badge>
+                <Badge tone={fg ? "success" : "warning"}>{fg ? "FOREGROUND SHIELD ACTIVE" : "FOREGROUND SHIELD OFF"}</Badge>
               </div>
               <p className="text-xs text-muted-foreground mb-3">
-                Showing eligible processes running in the background. Active foreground applications are shielded and exempt from background trimming.
+                Sample running processes with the target the {mode} configuration assigns. The app in focus is shielded while protection is on; critical Windows processes are never limited. No process is ever terminated.
               </p>
               <div className="space-y-1.5">
-                {eligibleBgApps.map((app) => (
+                {visiblePlans.map((p) => (
                   <div
-                    key={app.name}
-                    className="flex items-center justify-between eo-list-row rounded-lg border border-border bg-window px-3 py-2 text-[12.5px]"
+                    key={p.app.name}
+                    className="flex flex-wrap items-center justify-between gap-2 eo-list-row rounded-lg border border-border bg-window px-3 py-2 text-[12.5px]"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold">{app.name}</span>
-                      <span className="font-mono text-[10.5px] text-muted-foreground">PID: {app.pid}</span>
-                      <Badge tone="muted">{app.category}</Badge>
+                      <span className="font-semibold">{p.app.name}</span>
+                      <span className="text-[11px] text-muted-foreground">{p.app.title}</span>
+                      <span className="font-mono text-[10.5px] text-muted-foreground">PID: {p.app.pid}</span>
+                      <Badge tone="muted">{p.app.category}</Badge>
+                      {p.app.foreground && <Badge tone="cyan">IN FOCUS</Badge>}
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="font-mono text-[11.5px] text-muted-foreground">
-                        {app.workingSetMb} MB working set
+                        {p.app.workingSetMb} MB working set
                       </span>
-                      <span title="Background eligible"><ShieldCheck className="h-4 w-4 text-success" /></span>
+                      <span className="w-[92px] text-right font-mono text-[11.5px] font-bold text-cyan tabular-nums">
+                        {p.targetMb === null ? "—" : <><CountUp value={p.targetMb} /> MB</>}
+                      </span>
+                      <span className="w-[64px] text-right font-mono text-[11px] text-success tabular-nums">
+                        {p.reclaimMb > 0 ? `−${p.reclaimMb} MB` : "±0 MB"}
+                      </span>
+                      {p.status === "ELIGIBLE" && <Badge tone="success">ELIGIBLE</Badge>}
+                      {p.status === "PROTECTED_FOREGROUND" && <Badge tone="cyan">PROTECTED · FOCUS</Badge>}
+                      {p.status === "CRITICAL" && <Badge tone="warning">CRITICAL · NEVER LIMITED</Badge>}
+                      {p.status === "EXCLUDED" && <Badge tone="muted">EXCLUDED</Badge>}
+                      {!p.app.critical && !(p.app.foreground && fg) && (
+                        <Toggle
+                          label={`Apply RAM target to ${p.app.name}`}
+                          on={p.status === "ELIGIBLE"}
+                          onChange={(on) =>
+                            setRamState((s) => ({
+                              excluded: on ? s.excluded.filter((x) => x !== p.app.name) : [...s.excluded, p.app.name],
+                            }))
+                          }
+                        />
+                      )}
+                      {p.status === "ELIGIBLE"
+                        ? <span title="Background eligible"><ShieldCheck className="h-4 w-4 text-success" /></span>
+                        : <span title="Not limited"><ShieldAlert className="h-4 w-4 text-muted-foreground" /></span>}
                     </div>
                   </div>
                 ))}
               </div>
             </Card>
+
+            <Modal
+              open={aggressiveConfirm}
+              onClose={() => setAggressiveConfirm(false)}
+              title="Apply Aggressive preset?"
+              sub="Simulated preview. No Windows process is changed."
+              tone="warning"
+              width="max-w-md"
+              icon={<Flame className="h-4 w-4" />}
+              footer={
+                <>
+                  <Btn variant="ghost" onClick={() => setAggressiveConfirm(false)}>Cancel</Btn>
+                  <Btn
+                    variant="primary"
+                    onClick={() => {
+                      setAggressiveConfirm(false);
+                      applyMode("AGGRESSIVE");
+                    }}
+                  >
+                    Apply Aggressive
+                  </Btn>
+                </>
+              }
+            >
+              <p className="text-[12.5px] text-muted-foreground">
+                Background apps keep only about 55% of their working set (never below each app's safe floor), and the full standby cache is purged every cycle. Heavily trimmed apps may feel slower when you switch back to them. Foreground and critical Windows processes stay protected.
+              </p>
+            </Modal>
           </>
         )}
 
@@ -1381,33 +1472,53 @@ export function AiOptimizationPage() {
   );
 }
 
-/* ── RAM Limiter panel: slider + numeric field always share one value ── */
+/* ── RAM Limiter panel: slider + numeric field edit one draft; Save commits it to the shared store ── */
 function RamLimiterPanel({
-  appName = "chrome.exe",
-  value,
-  onChange,
-  enforced,
-  onEnforce,
+  appName,
+  workingSetMb,
+  savedMb,
+  defaultMb,
+  overridden,
+  onSave,
+  onReset,
   mode,
   foreground,
   standbyPurged,
+  standbyMb,
+  freeMb,
   onPurgeStandby,
-  onReset,
 }: {
-  appName?: string;
-  value: number;
-  onChange: (v: number) => void;
-  enforced: number | null;
-  onEnforce: () => void;
+  appName: string;
+  workingSetMb: number;
+  savedMb: number;
+  defaultMb: number;
+  overridden: boolean;
+  onSave: (mb: number) => void;
+  onReset: () => void;
   mode: string;
   foreground: boolean;
-  standbyPurged?: boolean;
-  onPurgeStandby?: () => void;
-  onReset?: () => void;
+  standbyPurged: boolean;
+  standbyMb: number;
+  freeMb: number;
+  onPurgeStandby: () => void;
 }) {
-  const dirty = enforced !== value;
-  const atDefault = value === RAM_DEFAULT_GB;
-  const share = (value / SYSTEM_RAM_GB) * 100;
+  const [draftMb, setDraftMb] = useState(savedMb);
+  const [unit, setUnit] = useState<"MB" | "GB">("MB");
+  // Follow external changes (reset, reload) while there is no unsaved edit.
+  const [lastSaved, setLastSaved] = useState(savedMb);
+  if (lastSaved !== savedMb) {
+    setLastSaved(savedMb);
+    setDraftMb(savedMb);
+  }
+  const dirty = draftMb !== savedMb;
+  const atDefault = draftMb === defaultMb;
+  const share = (draftMb / (SYSTEM_RAM_GB * 1024)) * 100;
+  const aboveWs = draftMb > workingSetMb;
+  const isGb = unit === "GB";
+  const shown = isGb ? draftMb / 1024 : draftMb;
+  const setShown = (v: number) => setDraftMb(clampManualMb(isGb ? v * 1024 : v));
+  // Slider spans up to twice the working set (exact field still accepts up to 8 GB).
+  const sliderMax = Math.min(MANUAL_MAX_MB, Math.max(1024, Math.ceil((workingSetMb * 2) / 256) * 256));
   return (
     <Card className="eo-hero eo-ram">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1422,17 +1533,17 @@ function RamLimiterPanel({
               <Badge tone="warning">MANUAL LIMIT</Badge>
             </div>
             <p className="mt-0.5 max-w-xl text-[11.5px] text-muted-foreground">
-              Cap the working set of {appName} and purge inactive standby cache automatically. The limiter stays a passive monitor until you enforce the target — in this prototype, enforcing is simulated.
+              Set the working-set target of {appName} only — other applications keep their own targets. In this prototype the target is a simulated preview; a native Windows service would enforce it.
             </p>
           </div>
         </div>
         <span aria-live="polite">
-          {enforced === null ? (
-            <Badge tone="muted">NOT ENFORCED</Badge>
-          ) : dirty ? (
+          {dirty ? (
             <Badge tone="warning">UNSAVED CHANGE</Badge>
+          ) : overridden ? (
+            <Badge tone="success">SAVED · SIMULATED</Badge>
           ) : (
-            <Badge tone="success">ENFORCED · SIMULATED</Badge>
+            <Badge tone="muted">DEFAULT TARGET</Badge>
           )}
         </span>
       </div>
@@ -1443,26 +1554,29 @@ function RamLimiterPanel({
             <div>
               <Label className="text-[10px]">TARGET APPLICATION</Label>
               <div className="text-[13px] font-bold">{appName}</div>
+              <div className="text-[11px] text-muted-foreground">Current working set · {workingSetMb} MB</div>
             </div>
             <div className="text-right">
               <Label className="text-[10px]">SYSTEM MEMORY · SAMPLE</Label>
               <div className="text-[13px] font-semibold">
-                {SYSTEM_RAM_GB} GB total · {standbyPurged ? "21.6 GB free" : "19.8 GB free"}
+                {SYSTEM_RAM_GB} GB total · {fmtMb(freeMb)} free
               </div>
             </div>
           </div>
 
           <div className="mt-3 flex items-end gap-3">
             <div className="eo-ram-readout tabular-nums" aria-hidden="true">
-              {value.toFixed(2)}
-              <span>GB</span>
+              {isGb ? (draftMb / 1024).toFixed(2) : draftMb}
+              <span>{unit}</span>
             </div>
             <div className="pb-1.5 text-[11px] text-muted-foreground">
-              max working set · {share.toFixed(1)}% of system memory
-              <div className={cn("font-bold", atDefault ? "text-success" : "text-cyan")}>
-                {atDefault
-                  ? "RECOMMENDED CONFIGURATION"
-                  : `${value > RAM_DEFAULT_GB ? "+" : "−"}${Math.abs(value - RAM_DEFAULT_GB).toFixed(2)} GB vs recommended`}
+              target working set · {share.toFixed(1)}% of system memory
+              <div className={cn("font-bold", aboveWs ? "text-warning" : atDefault ? "text-success" : "text-cyan")}>
+                {aboveWs
+                  ? `Above current working set (${workingSetMb} MB) — nothing will be trimmed`
+                  : atDefault
+                    ? "DEFAULT TARGET"
+                    : `${draftMb > defaultMb ? "+" : "−"}${Math.abs(draftMb - defaultMb)} MB vs default · −${workingSetMb - draftMb} MB vs current`}
               </div>
             </div>
           </div>
@@ -1470,18 +1584,17 @@ function RamLimiterPanel({
           <RangeSlider
             id="eo-ram-limit"
             className="mt-3"
-            label={`Maximum RAM limit for ${appName}`}
-            value={value}
-            onChange={onChange}
-            min={RAM_MIN_GB}
-            max={RAM_MAX_GB}
-            step={RAM_STEP_GB}
-            valueText={gb(value)}
+            label={`RAM target for ${appName}`}
+            value={Math.min(draftMb, sliderMax)}
+            onChange={(v) => setDraftMb(clampManualMb(v))}
+            min={MANUAL_MIN_MB}
+            max={sliderMax}
+            step={16}
+            valueText={fmtMb(draftMb)}
             marks={[
-              { value: RAM_MIN_GB, label: `MIN ${RAM_MIN_GB} GB` },
-              { value: RAM_DEFAULT_GB, label: `RECOMMENDED ${RAM_DEFAULT_GB} GB`, tone: "success" },
-              { value: 4, label: "4 GB" },
-              { value: RAM_MAX_GB, label: `MAX ${RAM_MAX_GB} GB` },
+              { value: defaultMb, label: `DEFAULT ${defaultMb} MB`, tone: "success" },
+              { value: workingSetMb, label: `CURRENT ${workingSetMb} MB` },
+              { value: sliderMax, label: `${fmtMb(sliderMax)}` },
             ]}
           />
 
@@ -1500,40 +1613,49 @@ function RamLimiterPanel({
         </div>
 
         <div className="eo-ram-side flex flex-col gap-2.5">
-          <label htmlFor="eo-ram-number" className="eo-label text-[10px] text-muted-foreground">
-            EXACT LIMIT
-          </label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="eo-ram-number" className="eo-label text-[10px] text-muted-foreground">
+              EXACT TARGET
+            </label>
+            <Segmented label="Target unit" options={["MB", "GB"]} value={unit} onChange={(u) => setUnit(u as "MB" | "GB")} />
+          </div>
           <NumberField
+            key={unit}
             id="eo-ram-number"
-            label={`Maximum RAM limit for ${appName} in gigabytes`}
-            value={value}
-            onChange={onChange}
-            min={RAM_MIN_GB}
-            max={RAM_MAX_GB}
-            step={RAM_STEP_GB}
-            unit="GB"
+            label={`RAM target for ${appName} in ${isGb ? "gigabytes" : "megabytes"}`}
+            value={shown}
+            onChange={setShown}
+            min={isGb ? MANUAL_MIN_MB / 1024 : MANUAL_MIN_MB}
+            max={isGb ? MANUAL_MAX_MB / 1024 : MANUAL_MAX_MB}
+            step={isGb ? 0.125 : 1}
+            decimals={isGb ? 3 : 0}
+            unit={unit}
           />
           <p className="text-[10.5px] text-subtle">
-            {RAM_MIN_GB}–{RAM_MAX_GB} GB in {RAM_STEP_GB} GB steps · arrow keys adjust
+            Valid range {MANUAL_MIN_MB} MB – 8 GB · arrow keys adjust · Escape restores
           </p>
 
           <Btn
             size="sm"
             variant="outline"
+            disabled={standbyPurged}
             onClick={onPurgeStandby}
             title="Purge unused standby memory cache"
           >
             <Trash2 aria-hidden="true" className="h-3 w-3 mr-1" />
-            Purge Standby ({standbyPurged ? "Clean" : "1.84 GB"})
+            Purge Standby ({standbyPurged ? "Clean" : fmtMb(standbyMb)})
           </Btn>
 
           <div className="grid grid-cols-2 gap-2">
             <Btn
               size="sm"
               variant="ghost"
-              disabled={atDefault}
-              onClick={onReset || (() => onChange(RAM_DEFAULT_GB))}
-              title="Reset to the recommended default (2 GB)"
+              disabled={!overridden && atDefault}
+              onClick={() => {
+                setDraftMb(defaultMb);
+                onReset();
+              }}
+              title={`Reset to the default target (${defaultMb} MB)`}
             >
               <RotateCcw aria-hidden="true" className="h-3 w-3" />
               Reset
@@ -1541,20 +1663,18 @@ function RamLimiterPanel({
             <Btn
               size="sm"
               variant="ghost"
-              disabled={enforced === null || !dirty}
-              onClick={() => enforced !== null && onChange(enforced)}
-              title="Discard the change and return to the enforced value"
+              disabled={!dirty}
+              onClick={() => setDraftMb(savedMb)}
+              title="Discard the change and return to the saved target"
             >
-              Revert
+              Cancel
             </Btn>
           </div>
-          <Btn variant="primary" size="lg" disabled={!dirty} onClick={onEnforce}>
-            Enforce target
+          <Btn variant="primary" size="lg" disabled={!dirty} onClick={() => onSave(draftMb)}>
+            Save target
           </Btn>
           <p className="text-[10.5px] text-muted-foreground" aria-live="polite">
-            {enforced === null
-              ? "No limit enforced yet."
-              : `Enforced at ${gb(enforced)} (simulated).`}
+            Saved target: {fmtMb(savedMb)} (simulated).
           </p>
         </div>
       </div>
@@ -1579,7 +1699,7 @@ function RamLimiterPanel({
         <div>
           <Label className="text-[10px]">HOW IT WORKS</Label>
           <div className="text-muted-foreground">
-            Pages above the limit are trimmed to standby; inactive cache is purged automatically.
+            Pages above the target are trimmed to standby; the app is never closed.
           </div>
         </div>
       </div>

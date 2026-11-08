@@ -691,7 +691,7 @@ export const GUIDES = {
     title: "RAM Limiter",
     what: "Caps how much memory a chosen app can hold.",
     why: "Keeps a background app from taking memory your main app needs.",
-    how: "Pages above the limit are moved to standby; the app is never closed. Range 0.5–8 GB.",
+    how: "Pages above the limit are moved to standby; the app is never closed. Auto, Light and Aggressive calculate a target per app; Manual sets one app at a time (128 MB–8 GB).",
     when: "For browsers or launchers that grow large while you game.",
     benefit: "More memory available for your active app.",
     risk: "low",
