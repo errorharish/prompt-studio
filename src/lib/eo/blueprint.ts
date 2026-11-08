@@ -597,7 +597,7 @@ export const SLIDER_SPEC: string[] = [
   "Track 8px with an inset shadow; the cyan → blue fill ends exactly under the thumb centre (thumb radius 10px). The fill updates instantly — no transition.",
   "Marks (min, recommended, intermediate, max) sit under the track using the same thumb-travel formula; the recommended mark is green.",
   "The numeric field and slider share one value. Valid typing updates live; blur or Enter clamps to min/max and snaps to the step; Esc reverts; arrow keys step.",
-  "RAM Limiter: 0.5–8 GB in 0.25 GB steps, recommended / default 2 GB (the original 2048 MB default). Reset returns to 2 GB; Revert returns to the last enforced value; Enforce target is simulated.",
+  "RAM Limiter: one shared, persisted configuration (src/lib/eo/ramLimiter.ts). AUTO/LIGHT/AGGRESSIVE calculate each background app's target from system RAM, memory pressure, category floor and focus; never above the current working set; foreground (when protected) and critical processes are never limited; Aggressive asks for confirmation. MANUAL: per-app target 128 MB–8 GB in MB or GB with Save / Cancel / Reset (default = current AUTO target). Enforcement is simulated; a native bridge would apply it.",
 ];
 
 /** Auto Optimize — recurring maintenance engine (prototype behaviour = intended native behaviour). */
