@@ -65,32 +65,13 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 /* ───────── AI OPTIMIZATION (3 sub-modules via top segmented control) ───────── */
-const RAM_MIN_GB = 0.5;
-const RAM_MAX_GB = 8;
-const RAM_STEP_GB = 0.25;
-const RAM_DEFAULT_GB = 2; // original prototype default (2048 MB); shown as the recommended mark
 const SYSTEM_RAM_GB = 32; // sample system memory (HW.ram)
-const gb = (v: number) => `${v.toFixed(2)} GB`;
-
-interface CustomTarget {
-  name: string;
-  limit: number;
-}
-
-interface EligibleBackgroundApp {
-  name: string;
-  category: "BROWSER" | "COMMUNICATION" | "LAUNCHER" | "MEDIA" | "UTILITY";
-  pid: number;
-  workingSetMb: number;
-  isBackground: true;
-}
-
-const DEFAULT_ELIGIBLE_BG_APPS: EligibleBackgroundApp[] = [
-  { name: "chrome.exe", category: "BROWSER", pid: 7420, workingSetMb: 1240, isBackground: true },
-  { name: "Discord.exe", category: "COMMUNICATION", pid: 11240, workingSetMb: 680, isBackground: true },
-  { name: "Spotify.exe", category: "MEDIA", pid: 8912, workingSetMb: 420, isBackground: true },
-  { name: "steamwebhelper.exe", category: "LAUNCHER", pid: 5630, workingSetMb: 510, isBackground: true },
-  { name: "EpicGamesLauncher.exe", category: "LAUNCHER", pid: 9812, workingSetMb: 390, isBackground: true },
+const SAMPLE_SYS_TOTAL_MB = SYSTEM_RAM_GB * 1024;
+const PRESSURE_OPTIONS: [string, number][] = [
+  ["LOW 45%", 0.45],
+  ["NORMAL 62%", 0.62],
+  ["HIGH 78%", 0.78],
+  ["CRITICAL 90%", 0.9],
 ];
 
 interface EligibleWorkload {
@@ -197,30 +178,23 @@ export function AiOptimizationPage() {
 
   /* ────────────────── 1. RAM LIMITER STATE ────────────────── */
   const [query, setQuery] = useState("");
-  // Presets: AUTO, LIGHT, AGGRESSIVE, and MANUAL mode
-  const [mode, setMode] = useState("AUTO");
-  const [trimInterval, setTrimInterval] = useState("10 MIN");
-  const [fg, setFg] = useState(true); // Foreground protection shield
-  const [standbyPurged, setStandbyPurged] = useState(false);
+  // One shared RAM Limiter configuration (persisted); every panel below reads it.
+  const ram = useRamState();
+  const { mode, trimInterval, foregroundProtection: fg, standbyPurged } = ram;
   const [selectedApp, setSelectedApp] = useState("chrome.exe");
-
-  // Independent manual RAM limits per eligible application
-  const [appManualLimits, setAppManualLimits] = useState<Record<string, number>>({
-    "chrome.exe": 2.0,
-    "Discord.exe": 0.75,
-    "Spotify.exe": 0.5,
-    "steamwebhelper.exe": 0.5,
-    "EpicGamesLauncher.exe": 0.5,
-  });
-
-  // Enforced limits per application
-  const [enforcedLimits, setEnforcedLimits] = useState<Record<string, number>>({
-    "chrome.exe": 2.0,
-  });
-
-  const [customTargets, setCustomTargets] = useState<CustomTarget[]>([
-    { name: "Discord.exe", limit: 1.0 },
-  ]);
+  const [aggressiveConfirm, setAggressiveConfirm] = useState(false);
+  const [modeBusy, setModeBusy] = useState(false);
+  const sys = useMemo(() => ({ totalMb: SAMPLE_SYS_TOTAL_MB, pressure: ram.pressure }), [ram.pressure]);
+  const ramSummary = useMemo(
+    () =>
+      summarize(
+        SAMPLE_APPS,
+        { mode, foregroundProtection: fg, manualMb: ram.manualMb, excluded: ram.excluded },
+        sys,
+        standbyPurged,
+      ),
+    [mode, fg, ram.manualMb, ram.excluded, sys, standbyPurged],
+  );
 
   /* ────────────── 2. WORKLOAD OPTIMIZER STATE ────────────── */
   const [inv, setInv] = useState("ALL");
@@ -269,11 +243,38 @@ export function AiOptimizationPage() {
   const [newAppCategory, setNewAppCategory] = useState("GAMES");
 
   /* Filtered eligible background applications */
-  const eligibleBgApps = useMemo(() => {
-    return DEFAULT_ELIGIBLE_BG_APPS.filter((app) =>
-      app.name.toLowerCase().includes(query.toLowerCase())
+  const visiblePlans = useMemo(() => {
+    const q = query.toLowerCase();
+    return ramSummary.plans.filter(
+      (p) => p.app.name.toLowerCase().includes(q) || p.app.title.toLowerCase().includes(q),
     );
-  }, [query]);
+  }, [ramSummary.plans, query]);
+  const manualPlans = visiblePlans.filter((p) => p.status === "ELIGIBLE");
+  const selectedPlan = ramSummary.plans.find((p) => p.app.name === selectedApp && p.status === "ELIGIBLE")
+    ?? ramSummary.plans.find((p) => p.status === "ELIGIBLE");
+
+  const applyMode = (m: RamMode) => {
+    if (modeBusy || m === mode) return;
+    setModeBusy(true);
+    setRamState({ mode: m });
+    window.setTimeout(() => setModeBusy(false), 350);
+    const next = summarize(
+      SAMPLE_APPS,
+      { mode: m, foregroundProtection: fg, manualMb: ram.manualMb, excluded: ram.excluded },
+      sys,
+      standbyPurged,
+    );
+    toast.success(`RAM Limiter Mode: ${m}`, {
+      description:
+        m === "MANUAL"
+          ? "Manual mode active. Set an independent target for each background application."
+          : `${next.limited} background apps retargeted · ${fmtMb(next.reclaimMb)} reclaimable. (Simulated)`,
+    });
+  };
+  const requestMode = (m: string) => {
+    if (m === "AGGRESSIVE" && mode !== "AGGRESSIVE") setAggressiveConfirm(true);
+    else applyMode(m as RamMode);
+  };
 
   /* Handlers */
   const handleRefresh = () => {
@@ -284,25 +285,18 @@ export function AiOptimizationPage() {
   };
 
   const handleSimulateStandbyFlush = () => {
-    setStandbyPurged(true);
+    if (standbyPurged) return;
+    const purged = ramSummary.standbyMb;
+    setRamState({ standbyPurged: true });
     toast.success("Standby Memory Purged", {
-      description: "Purged 1.84 GB inactive standby cache. Free RAM expanded to 21.6 GB. (Simulated)",
+      description: `Purged ${fmtMb(purged)} inactive standby cache. Free RAM: ${fmtMb(ramSummary.availableMb + purged)}. (Simulated)`,
     });
   };
 
   const handleResetRamLimiter = () => {
-    setAppManualLimits({
-      "chrome.exe": RAM_DEFAULT_GB,
-      "Discord.exe": 0.75,
-      "Spotify.exe": 0.5,
-      "steamwebhelper.exe": 0.5,
-      "EpicGamesLauncher.exe": 0.5,
-    });
-    setMode("AUTO");
-    setTrimInterval("10 MIN");
-    setFg(true);
+    setRamState({ ...RAM_DEFAULTS });
     toast.info("RAM Limiter Reset", {
-      description: "Restored recommended defaults (Auto mode, 10 MIN interval, Foreground shield active).",
+      description: "Restored recommended defaults (Auto mode, 10 MIN interval, Foreground shield active, manual targets cleared).",
     });
   };
 
@@ -420,8 +414,6 @@ export function AiOptimizationPage() {
         compatibleProfile: profile,
       },
     ]);
-
-    setCustomTargets((prev) => [...prev, { name: cleanName, limit: 1.5 }]);
 
     toast.success("Custom Workload Registered", {
       description: `Registered ${cleanName} under ${newAppCategory} with ${profile}.`,
