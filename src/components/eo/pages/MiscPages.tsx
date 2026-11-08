@@ -490,7 +490,7 @@ export function AiOptimizationPage() {
                 <Label className="text-foreground">
                   SEARCH RUNNING BACKGROUND APPLICATIONS
                 </Label>
-                <Btn size="sm" onClick={() => setAddAppOpen(true)}>
+                <Btn size="sm" onClick={() => setMod("WORKLOAD OPTIMIZATION")} title="Custom apps are managed in Workload Optimization">
                   + Add custom app
                 </Btn>
               </div>
