@@ -132,3 +132,23 @@ describe("custom applications", () => {
     expect(deleteCustomApp(reloaded, "c1")).toEqual([]);
   });
 });
+
+import { WorkloadOptimizer as _WO } from "@/lib/eo/workload/services";
+describe("workload exit restores settings", () => {
+  it("reverts only the exited workload's plan and leaves the other applied", async () => {
+    const calls: string[] = [];
+    const be = {
+      applyPlan: async (pid: number) => void calls.push(`apply:${pid}`),
+      revertPlan: async (pid: number) => void calls.push(`revert:${pid}`),
+    } as never;
+    const phases: string[] = [];
+    const o = new _WO(be, (pid, ph) => phases.push(`${pid}:${ph}`));
+    const plan = { priority: "HIGH", affinity: null, memory: "", gpu: "", actions: [], notes: [], risk: "Safe" };
+    const w = (pid: number) => ({ pid, status: "OPTIMIZED", plan }) as never;
+    await o.sync([w(1), w(2)]);
+    await o.sync([w(2)]);
+    expect(calls).toEqual(["apply:1", "apply:2", "revert:1"]);
+    expect(phases).toContain("1:RESTORED");
+    expect(phases).not.toContain("2:RESTORED");
+  });
+});
