@@ -313,7 +313,7 @@ export interface AnimatedNumberProps {
   prefix?: string;
   suffix?: string;
   format?: (val: number) => string;
-  className?: string;
+  className?: string | undefined;
   initialAnimate?: boolean;
 }
 
