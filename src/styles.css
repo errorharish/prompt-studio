@@ -1,62 +1,55 @@
-/*
- * Tailwind v4 entry: config lives here, with no tailwind.config.js or PostCSS plugin.
- * - Keep every @import in this top block, above @theme and the rest of the file. Install an
- *   npm package before @importing its CSS. Never @import a remote URL (web fonts, CDN CSS): the
- *   build resolves @import from the filesystem. Load those with a <link> in the head() of
- *   src/routes/__root.tsx and name the family in a --font-* token in @theme inline below.
- */
 @import "tailwindcss" source(none);
-@source "../src";
 @import "tw-animate-css";
+@source "../src";
 
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Design system definition.
- *
- * The design lives in this file: oklch color tokens on the shadcn variables
- * (--background, --foreground, --primary, --secondary, --muted, --accent, ...) plus
- * new tokens as needed, font tokens, and custom styles and animations.
- *
- * The @theme inline block maps CSS custom properties to Tailwind utility
- * classes (e.g. --color-primary -> bg-primary, text-primary).
- *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
- *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ * ERROR OPTIMIZER design system — mirrors BiosOptimizer.GUI/Theme/DesignTokens.xaml
+ * (Figma* color keys). Hex originals noted beside each token for WPF reproduction.
  */
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
+  --font-sans: "Segoe UI Variable Display", "Segoe UI", "Sora", system-ui, sans-serif;
+  --font-mono: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 8px;
+  --radius-xl: 8px;
+  --radius-2xl: 24px;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-window: var(--window);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-elevated: var(--elevated);
+  --color-highlight: var(--highlight);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
+  --color-cyan: var(--cyan);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-subtle: var(--subtle);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-ring-offset-background: var(--background);
+  --color-tier-normal: var(--tier-normal);
+  --color-tier-pro: var(--tier-pro);
+  --color-tier-ultimate: var(--tier-ultimate);
+  --color-tier-debloat: var(--tier-debloat);
+  --color-tier-bios: var(--tier-bios);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -73,83 +66,1200 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
-}
+  --radius: 8px;
+  --background: oklch(0.13 0.02 265); /* #050811 FigmaCanvasBg */
+  --window: oklch(0.16 0.025 265); /* #080D1A FigmaWindowBg */
+  --card: oklch(0.19 0.035 265); /* #0D1426 FigmaSecondaryPanel */
+  --card-foreground: oklch(0.98 0.003 248);
+  --elevated: oklch(0.22 0.045 265); /* #121B33 */
+  --highlight: oklch(0.25 0.055 265); /* #172342 */
+  --popover: oklch(0.19 0.035 265);
+  --popover-foreground: oklch(0.98 0.003 248);
+  --foreground: oklch(0.98 0.003 248); /* #F8FAFC */
+  --primary: oklch(0.546 0.215 263); /* #2563EB */
+  --primary-hover: oklch(0.62 0.19 260); /* #3B82F6 */
+  --primary-foreground: oklch(0.98 0.003 248);
+  --cyan: oklch(0.75 0.15 230); /* #38BDF8 */
+  --secondary: oklch(0.22 0.045 265);
+  --secondary-foreground: oklch(0.98 0.003 248);
+  --muted: oklch(0.22 0.045 265);
+  --muted-foreground: oklch(0.71 0.035 257); /* #94A3B8 */
+  --subtle: oklch(0.62 0.04 257); /* #77879F — lifted from #64748B (4.0:1) to 5.3:1 contrast on window */
+  --accent: oklch(0.546 0.215 263);
+  --accent-foreground: oklch(0.98 0.003 248);
+  --success: oklch(0.7 0.15 163); /* #10B981 */
+  --warning: oklch(0.77 0.16 70); /* #F59E0B */
+  --destructive: oklch(0.64 0.21 25); /* #EF4444 */
+  --destructive-foreground: oklch(0.98 0.003 248);
+  --border: oklch(0.27 0.055 265); /* #1A2544 */
+  --border-strong: oklch(0.33 0.07 265); /* #253560 */
+  --input: oklch(0.27 0.055 265);
+  --ring: oklch(0.75 0.15 230);
+  --tier-normal: oklch(0.7 0.15 163); /* #10B981 */
+  --tier-pro: oklch(0.546 0.215 263); /* #2563EB */
+  --tier-ultimate: oklch(0.64 0.21 25); /* #EF4444 */
+  --tier-debloat: oklch(0.71 0.13 215); /* #06B6D4 */
+  --tier-bios: oklch(0.68 0.15 237); /* #0EA5E9 */
+  --chart-1: oklch(0.75 0.15 230);
+  --chart-2: oklch(0.7 0.15 163);
+  --chart-3: oklch(0.546 0.215 263);
+  --chart-4: oklch(0.77 0.16 70);
+  --chart-5: oklch(0.64 0.21 25);
+  --sidebar: oklch(0.16 0.025 265);
+  --sidebar-foreground: oklch(0.71 0.035 257);
+  --sidebar-primary: oklch(0.75 0.15 230);
+  --sidebar-primary-foreground: oklch(0.13 0.02 265);
+  --sidebar-accent: oklch(0.22 0.045 265);
+  --sidebar-accent-foreground: oklch(0.98 0.003 248);
+  --sidebar-border: oklch(0.27 0.055 265);
+  --sidebar-ring: oklch(0.75 0.15 230);
 
-.dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  /* Surfaces & lighting */
+  --gradient-brand: linear-gradient(135deg, var(--cyan), var(--primary));
+  --gradient-canvas: radial-gradient(1100px 560px at 12% -12%, oklch(0.546 0.215 263 / 0.15), transparent 62%),
+    radial-gradient(820px 480px at 108% 4%, oklch(0.75 0.15 230 / 0.07), transparent 60%),
+    radial-gradient(900px 600px at 50% 120%, oklch(0.546 0.215 263 / 0.06), transparent 70%), var(--background);
+  --surface-light: oklch(0.98 0.003 248 / 0.035);
+  --surface-edge: oklch(0.98 0.003 248 / 0.06);
+  --surface-glass: oklch(0.19 0.035 265 / 0.9); /* dense data panels: no blur */
+  --glass-chrome: oklch(0.15 0.025 265 / 0.72); /* title bar, dock, tabs, footer */
+  --glass-float: oklch(0.19 0.04 265 / 0.8); /* dialogs, menus, toasts, sticky bars */
+  --glass-blur-chrome: blur(14px) saturate(140%);
+  --glass-blur-float: blur(20px) saturate(150%);
+  --edge-light: color-mix(in oklab, var(--cyan) 32%, var(--border));
+  --gradient-card: linear-gradient(160deg, var(--surface-light), transparent 42%), var(--surface-glass);
+
+  /* Depth (layered shadows) */
+  --shadow-card: inset 0 1px 0 var(--surface-edge), 0 1px 2px oklch(0 0 0 / 0.28), 0 10px 28px -18px oklch(0 0 0 / 0.85);
+  --shadow-elevated: inset 0 1px 0 var(--surface-edge), 0 2px 6px -2px oklch(0 0 0 / 0.35),
+    0 18px 38px -18px oklch(0 0 0 / 0.75), 0 0 0 1px color-mix(in oklab, var(--cyan) 7%, transparent);
+  --shadow-pressed: inset 0 1px 3px oklch(0 0 0 / 0.45);
+  --shadow-glow: 0 0 0 1px oklch(0.75 0.15 230 / 0.18), 0 6px 18px -10px oklch(0.546 0.215 263 / 0.45);
+  --overlay-shadow: inset 0 1px 0 var(--surface-edge), 0 4px 12px oklch(0 0 0 / 0.3), 0 30px 90px -20px oklch(0 0 0 / 0.7);
+
+  /* Motion tokens — every value is mirrored in the Blueprint motion table */
+  --duration-fast: 120ms;
+  --duration-control: 180ms;
+  --duration-standard: 220ms; /* standard state transitions (rows, panels, pills) */
+  --duration-page: 380ms;
+  --duration-dialog: 300ms; /* dialog / panel entrance */
+  --duration-slow: 320ms;
+  --ease-out: cubic-bezier(.2,.8,.2,1);
+  --ease-spring: cubic-bezier(.34,1.4,.64,1);
+  --stagger: 40ms;
+  --lift-hover: -2px;
+  --duration-entrance: 440ms; /* larger entrance sequences (hero panels, staggered workspaces) */
+  --duration-score: 900ms; /* score gauge fill + count-up (data draw, like the chart) */
+  --ease-emphasized: cubic-bezier(.16,1,.3,1);
+
+  /* Hero glass (score, Auto Optimize, RAM limiter, V4 primary workspaces) */
+  --glass-panel: oklch(0.2 0.045 265 / 0.66);
+  --glass-blur-panel: blur(12px) saturate(140%);
+  --edge-highlight: linear-gradient(90deg, transparent 8%, color-mix(in oklab, var(--cyan) 60%, transparent) 50%, transparent 92%);
+  --thumb-r: 10px;
+
+  /* Compact density */
+  --page-pad-x: 24px;
+  --page-pad-y: 18px;
+  --section-gap: 14px;
+  --row-h: 36px;
 }
 
 @layer base {
+  /* One dropdown treatment app-wide: native <select> matches inputs (border, surface, chevron, hover/focus motion). */
+  select {
+    appearance: none;
+    min-height: 32px;
+    padding: 0 30px 0 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background-color: var(--window);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    color: var(--foreground);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-control) var(--ease-out);
+  }
+  select:hover { border-color: var(--border-strong); background-color: color-mix(in oklab, var(--highlight) 45%, var(--window)); }
+  select:focus-visible { outline: none; border-color: var(--ring); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 22%, transparent); }
+  select:disabled { opacity: 0.5; cursor: not-allowed; }
+  select option { background: var(--window); color: var(--foreground); }
   * {
     border-color: var(--color-border);
   }
-
+  html,
   body {
-    background-color: var(--color-background);
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: var(--gradient-canvas);
+    background-attachment: fixed;
     color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
   }
+  #root {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+  /* Hidden scrollbars, everywhere (Firefox + Chromium/WebKit). Scrolling itself is untouched:
+   * wheel, touchpad, keyboard and scroll-into-view all keep working. `.eo-scroll-fade` adds an
+   * edge fade so users can still tell more content is available. */
+  * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  *::-webkit-scrollbar,
+  *::-webkit-scrollbar-button,
+  *::-webkit-scrollbar-corner {
+    display: none;
+    width: 0;
+    height: 0;
+    background: transparent;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--cyan) 35%, transparent);
+  }
+}
+
+@utility eo-card {
+  background: var(--gradient-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-card);
+}
+
+@utility eo-brand {
+  background: var(--gradient-brand);
+}
+
+@utility eo-glow {
+  box-shadow: var(--shadow-glow);
+}
+
+@utility eo-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+@utility eo-enter {
+  animation: eo-page-in var(--duration-page) var(--ease-out) both;
+}
+
+@utility eo-glass-float {
+  background: linear-gradient(160deg, var(--surface-light), transparent 40%), var(--glass-float);
+  backdrop-filter: var(--glass-blur-float);
+}
+
+@utility eo-glass-chrome {
+  background: var(--glass-chrome);
+  backdrop-filter: var(--glass-blur-chrome);
+}
+
+/* ── Global interaction baseline ── */
+html[data-accent="1"] { --cyan: var(--primary-hover); }
+html[data-accent="2"] { --cyan: var(--success); }
+html[data-accent="3"] { --cyan: var(--warning); }
+html[data-accent="4"] { --cyan: var(--destructive); }
+html[data-accent="5"] { --cyan: var(--tier-debloat); }
+* { letter-spacing: 0 !important; }
+button, a, input, select, summary { -webkit-tap-highlight-color: transparent; }
+button, a { transition: color var(--duration-fast), background-color var(--duration-fast), border-color var(--duration-control), transform var(--duration-control) var(--ease-out), box-shadow var(--duration-control), opacity var(--duration-control); }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, [role="switch"]:focus-visible, [role="checkbox"]:focus-visible, textarea:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+button:active:not(:disabled), a:active { transform: translateY(1px) scale(.99); }
+input, select { min-width: 0; }
+input, select, textarea { transition: border-color var(--duration-control), box-shadow var(--duration-control), background-color var(--duration-fast); }
+input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px color-mix(in oklab, var(--cyan) 14%, transparent); }
+input[type="range"] { accent-color: var(--cyan); }
+
+/* ── Shell: ambient light + glass chrome ── */
+.eo-ambient { position: fixed; inset: 0; z-index: -1; pointer-events: none; background:
+  radial-gradient(600px 260px at 50% -80px, color-mix(in oklab, var(--cyan) 9%, transparent), transparent 70%),
+  radial-gradient(500px 400px at 0% 100%, oklch(0.546 0.215 263 / 0.07), transparent 70%); }
+.eo-shell-header, .eo-shell-footer, .eo-shell-tabs { background: var(--glass-chrome); backdrop-filter: var(--glass-blur-chrome); }
+.eo-shell-header { box-shadow: inset 0 -1px 0 var(--border), 0 1px 0 var(--surface-edge) inset; }
+.eo-dock { background: linear-gradient(180deg, var(--surface-light), transparent 30%), var(--glass-chrome); backdrop-filter: var(--glass-blur-chrome); transition: width var(--duration-slow) var(--ease-out); }
+.eo-dock-indicator { position: absolute; left: 0; top: 0; pointer-events: none; border-radius: 8px; background: linear-gradient(180deg, color-mix(in oklab, var(--cyan) 16%, transparent), color-mix(in oklab, var(--primary) 12%, transparent)); box-shadow: inset 0 1px 0 var(--surface-edge), 0 0 0 1px color-mix(in oklab, var(--cyan) 22%, transparent); transition: transform var(--duration-slow) var(--ease-spring), height var(--duration-slow) var(--ease-out), width var(--duration-slow) var(--ease-out), opacity var(--duration-control); }
+.eo-dock-indicator::before { content: ""; position: absolute; left: -8px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
+.eo-tab-indicator { position: absolute; left: 0; pointer-events: none; border-radius: 8px; background: color-mix(in oklab, var(--primary) 15%, transparent); box-shadow: inset 0 -2px 0 var(--cyan), inset 0 1px 0 var(--surface-edge); transition: transform var(--duration-slow) var(--ease-spring), width var(--duration-slow) var(--ease-out); }
+.eo-nav-item { isolation: isolate; z-index: 1; }
+.eo-nav-item svg { transition: transform var(--duration-control) var(--ease-spring), color var(--duration-fast); }
+.eo-nav-item:hover svg { transform: translateY(-1px) scale(1.06); }
+.eo-nav-item[aria-current="page"] svg { transform: scale(1.08); filter: drop-shadow(0 0 6px color-mix(in oklab, var(--cyan) 55%, transparent)); }
+.eo-dock[data-collapsed="true"] .eo-nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.eo-dock[data-collapsed="true"] .eo-nav-item { width: 44px; padding-top: 10px; padding-bottom: 10px; }
+.eo-suite-pill { position: relative; }
+.eo-suite-pill [aria-pressed="true"] { box-shadow: 0 2px 10px -4px var(--primary), inset 0 1px 0 var(--surface-edge); }
+
+/* ── Cards: depth, pointer light, tilt ── */
+.eo-card { min-width: 0; position: relative; }
+.eo-depth { transform: perspective(1400px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(var(--lift, 0px)); transition: transform 260ms var(--ease-out), border-color var(--duration-control), box-shadow var(--duration-control); }
+.eo-depth::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; background: radial-gradient(420px circle at var(--light-x, 50%) var(--light-y, 0%), color-mix(in oklab, var(--cyan) 7%, transparent), transparent 45%); transition: opacity var(--duration-slow) var(--ease-out); }
+.eo-depth:hover { border-color: var(--edge-light); box-shadow: var(--shadow-elevated); }
+.eo-depth:hover::before { opacity: 1; }
+.eo-depth:has(input:focus, select:focus, textarea:focus, button:focus-visible) { transform: none; }
+.eo-card:has(.eo-pop) { z-index: 15; }
+.eo-card.eo-glow { box-shadow: var(--shadow-glow), var(--shadow-card); }
+
+.eo-card .eo-card:not(.eo-modal) { box-shadow: inset 0 1px 0 var(--surface-edge); }
+/* Rows and tiles inside panels share one hover language */
+.eo-page-content :is(.rounded-lg, .rounded-xl, .rounded-md).border.bg-window { transition: border-color var(--duration-control), background-color var(--duration-fast), box-shadow var(--duration-control); }
+.eo-page-content :is(.rounded-lg, .rounded-xl).border.bg-window:hover { border-color: var(--border-strong); background-color: color-mix(in oklab, var(--elevated) 45%, var(--window)); }
+
+/* ── Compact headers ── */
+.eo-section-title { border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+.eo-page-header { padding-bottom: 12px; border-bottom: 1px solid transparent; border-image: linear-gradient(90deg, var(--border-strong), var(--border) 40%, transparent) 1; }
+.eo-page-header h1 { font-size: 20px; line-height: 1.2; }
+.eo-accent-bar { background-image: linear-gradient(180deg, oklch(1 0 0 / .35), transparent 65%); box-shadow: inset 0 0 0 1px oklch(1 0 0 / .06); }
+
+/* ── Stat tiles ── */
+.eo-stat { border-top: 2px solid var(--border-strong); background: linear-gradient(180deg, var(--surface-light), transparent), var(--window); transition: border-color var(--duration-control), transform var(--duration-control) var(--ease-out), box-shadow var(--duration-control); }
+.eo-stat:hover { border-top-color: var(--cyan); transform: translateY(var(--lift-hover)); box-shadow: var(--shadow-elevated); }
+.eo-stat-grid > * { min-width: 0; }
+.eo-stat-grid .text-2xl { font-size: 22px; line-height: 1.15; overflow-wrap: anywhere; }
+.eo-stat-value { animation: eo-value-in var(--duration-control) var(--ease-out); }
+
+/* ── Buttons ── */
+.eo-btn { position: relative; overflow: hidden; }
+.eo-btn svg { transition: transform var(--duration-control) var(--ease-spring); }
+.eo-btn:hover:not(:disabled) { box-shadow: 0 6px 18px -12px var(--cyan); }
+.eo-btn:hover:not(:disabled) svg { transform: translateX(1px) scale(1.06); }
+.eo-btn:active:not(:disabled) { box-shadow: var(--shadow-pressed); }
+.eo-btn-primary { box-shadow: var(--shadow-glow), inset 0 1px 0 oklch(1 0 0 / 0.18); }
+.eo-btn-primary::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(115deg, transparent 35%, oklch(1 0 0 / 0.16) 50%, transparent 65%); transform: translateX(-120%); transition: transform 600ms var(--ease-out); }
+.eo-btn-primary:hover:not(:disabled)::after { transform: translateX(120%); }
+.eo-btn-primary:hover:not(:disabled) { box-shadow: 0 0 0 1px oklch(0.75 0.15 230 / 0.35), 0 10px 30px -10px oklch(0.546 0.215 263 / 0.7), inset 0 1px 0 oklch(1 0 0 / 0.2); }
+.eo-btn[aria-busy="true"] { cursor: progress; }
+.eo-spin { animation: eo-spin 800ms linear infinite; }
+
+/* ── Toggle & check ── */
+.eo-toggle-thumb { transition: transform var(--duration-control) var(--ease-spring), background-color var(--duration-fast), box-shadow var(--duration-control); }
+[role="switch"][aria-checked="true"] .eo-toggle-thumb { transform: translateX(16px); box-shadow: 0 0 8px color-mix(in oklab, var(--cyan) 60%, transparent); }
+[role="switch"]:active .eo-toggle-thumb { width: 16px; }
+.eo-check { transition: background-color var(--duration-fast), border-color var(--duration-fast), box-shadow var(--duration-control); }
+.eo-check[aria-checked="true"] { box-shadow: 0 0 0 3px color-mix(in oklab, var(--cyan) 12%, transparent); }
+.eo-check[aria-checked="true"] svg { animation: eo-check-pop var(--duration-control) var(--ease-spring) both; }
+
+/* ── Progress ── */
+.eo-bar-fill { position: relative; overflow: hidden; background-image: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.18)); transition: width 500ms var(--ease-out); }
+.eo-bar-fill[data-active="true"]::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.35), transparent); animation: eo-sheen 1.6s linear infinite; }
+
+/* ── Page & section entrance ── */
+.eo-page-content { container-type: inline-size; padding: var(--page-pad-y) var(--page-pad-x); }
+.eo-enter { animation: eo-page-in var(--duration-page) var(--ease-emphasized) both; }
+.eo-enter > div > * { animation: eo-section-in var(--duration-page) var(--ease-emphasized) both; }
+.eo-enter > div > :nth-child(2) { animation-delay: calc(var(--stagger) * 1); }
+.eo-enter > div > :nth-child(3) { animation-delay: calc(var(--stagger) * 2); }
+.eo-enter > div > :nth-child(4) { animation-delay: calc(var(--stagger) * 3); }
+.eo-enter > div > :nth-child(5) { animation-delay: calc(var(--stagger) * 4); }
+.eo-enter > div > :nth-child(n + 6) { animation-delay: calc(var(--stagger) * 5); }
+
+/* ── Dialogs, menus, toasts (floating glass) ── */
+.eo-overlay { animation: eo-overlay-in 220ms ease both; backdrop-filter: blur(6px) saturate(120%); }
+.eo-modal { background: linear-gradient(160deg, var(--surface-light), transparent 40%), var(--glass-float); backdrop-filter: var(--glass-blur-float); box-shadow: var(--overlay-shadow); animation: eo-dialog-in var(--duration-dialog) var(--ease-emphasized) both; border-color: var(--border-strong); border-radius: 12px; }
+.eo-dismiss { animation: eo-overlay-out 200ms ease both; pointer-events: none; }
+.eo-dismiss .eo-modal { animation: eo-dialog-out 200ms var(--ease-out) both; }
+.eo-modal-head { background: linear-gradient(180deg, var(--surface-light), transparent); }
+.eo-pop { background: linear-gradient(160deg, var(--surface-light), transparent 40%), var(--glass-float); backdrop-filter: var(--glass-blur-float); box-shadow: var(--overlay-shadow); border-color: var(--border-strong); transform-origin: top right; animation: eo-pop-in 160ms var(--ease-out) both; }
+[data-sonner-toaster] [data-sonner-toast] { background: linear-gradient(160deg, var(--surface-light), transparent 40%), var(--glass-float) !important; backdrop-filter: var(--glass-blur-float); border: 1px solid var(--border-strong) !important; box-shadow: var(--overlay-shadow) !important; border-radius: 8px !important; }
+[data-sonner-toaster] [data-sonner-toast] [data-title] { font-weight: 700; font-size: 12.5px; }
+
+/* ── Expander ── */
+.eo-expand { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--duration-control) var(--ease-out); }
+.eo-expand[data-open="true"] { grid-template-rows: 1fr; }
+.eo-expand > div { min-height: 0; overflow: hidden; }
+.eo-expand[data-open="true"] > div { animation: eo-section-in var(--duration-slow) var(--ease-out) both; }
+
+/* ── Workflow, console, sticky bars ── */
+.eo-chart path { stroke-dasharray: 1; stroke-dashoffset: 0; animation: eo-chart-draw 800ms var(--ease-out) both; }
+.eo-console { border-top: 2px solid var(--cyan); background: var(--window); }
+.eo-console .font-mono { border-left: 2px solid var(--border-strong); }
+.eo-page-content .sticky.bottom-0 { z-index: 10; flex-wrap: wrap; gap: 12px; margin-left: calc(var(--page-pad-x) * -1); margin-right: calc(var(--page-pad-x) * -1); padding: 10px var(--page-pad-x); background: linear-gradient(180deg, var(--surface-light), transparent), var(--glass-float); backdrop-filter: var(--glass-blur-float); box-shadow: 0 -12px 28px -20px oklch(0 0 0 / .9), inset 0 1px 0 var(--surface-edge); }
+.eo-quick-link { display: flex; flex-direction: column; min-height: 118px; }
+.eo-quick-link:hover { border-color: var(--cyan); }
+.eo-quick-link:first-child { background: color-mix(in oklab, var(--primary) 12%, var(--window)); border-color: var(--primary); }
+.eo-quick-link p { flex: 1; }
+.eo-data-table { overflow-x: auto; }
+.eo-data-table > .grid { min-width: 820px; }
+.eo-page-content .grid > * { min-width: 0; }
+.eo-page-content .text-subtle { color: var(--muted-foreground); }
+.eo-page-content .rounded-xl { border-radius: 8px; }
+.eo-page-content .font-mono { overflow-wrap: anywhere; }
+.eo-skip { position: absolute; left: 12px; top: -48px; z-index: 60; border-radius: 8px; background: var(--primary); color: var(--primary-foreground); padding: 8px 14px; font-size: 12px; font-weight: 700; }
+.eo-skip:focus { top: 10px; }
+.eo-step { border-color: var(--border); color: var(--muted-foreground); background: var(--window); transition: border-color var(--duration-control), color var(--duration-control), background-color var(--duration-control), box-shadow var(--duration-control); }
+.eo-step .eo-step-dot { background: var(--elevated); color: var(--muted-foreground); transition: background-color var(--duration-control), color var(--duration-control); }
+.eo-step[data-state="current"] { border-color: color-mix(in oklab, var(--cyan) 60%, transparent); color: var(--cyan); background: color-mix(in oklab, var(--cyan) 10%, var(--window)); box-shadow: var(--shadow-glow); animation: eo-step-in var(--duration-slow) var(--ease-spring) both; }
+.eo-step[data-state="current"] .eo-step-dot { background: var(--cyan); color: var(--background); }
+.eo-step[data-state="done"] { border-color: color-mix(in oklab, var(--success) 40%, transparent); color: var(--success); }
+.eo-step[data-state="done"] .eo-step-dot { background: color-mix(in oklab, var(--success) 20%, transparent); color: var(--success); }
+.eo-skeleton { background: linear-gradient(90deg, var(--window) 0%, var(--elevated) 45%, var(--window) 90%); background-size: 220% 100%; animation: eo-shimmer 1.3s linear infinite; }
+.eo-pulse-dot { animation: eo-pulse 1s ease-in-out infinite; }
+.eo-empty { background: linear-gradient(180deg, var(--surface-light), transparent); }
+.eo-chart-area { opacity: .18; }
+.eo-result { border-color: color-mix(in oklab, var(--success) 35%, var(--border)); background: linear-gradient(135deg, color-mix(in oklab, var(--success) 8%, transparent), transparent 55%), var(--surface-glass); animation: eo-success-pop 420ms var(--ease-spring) both; }
+
+
+/* ── Hero glass panels: layered translucent surface, inner rim, lit top edge ── */
+.eo-hero { background: radial-gradient(120% 90% at 0% 0%, color-mix(in oklab, var(--cyan) 7%, transparent), transparent 55%), linear-gradient(160deg, var(--surface-light), transparent 45%), var(--glass-panel); backdrop-filter: var(--glass-blur-panel); border-color: color-mix(in oklab, var(--cyan) 18%, var(--border)); box-shadow: inset 0 0 0 1px var(--surface-edge), var(--shadow-card); animation: eo-hero-in var(--duration-entrance) var(--ease-emphasized) backwards; }
+.eo-hero::after { content: ""; position: absolute; left: 12px; right: 12px; top: -1px; height: 1px; pointer-events: none; background: var(--edge-highlight); opacity: .7; }
+.eo-hero:hover { box-shadow: inset 0 0 0 1px var(--surface-edge), var(--shadow-elevated); }
+.eo-stagger > * { animation: eo-rise-in var(--duration-entrance) var(--ease-emphasized) backwards; }
+.eo-stagger > :nth-child(2) { animation-delay: calc(var(--stagger) * 2); }
+.eo-stagger > :nth-child(3) { animation-delay: calc(var(--stagger) * 4); }
+.eo-stagger > :nth-child(4) { animation-delay: calc(var(--stagger) * 6); }
+.eo-stagger > :nth-child(n + 5) { animation-delay: calc(var(--stagger) * 8); }
+.eo-swap { animation: eo-rise-in var(--duration-slow) var(--ease-out) backwards; }
+
+/* ── Segmented control (one sliding indicator) ── */
+.eo-seg { position: relative; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: 8px; border: 1px solid var(--border); background: color-mix(in oklab, var(--window) 88%, transparent); box-shadow: inset 0 1px 2px oklch(0 0 0 / .35); }
+.eo-seg-item { position: relative; z-index: 1; height: 26px; padding: 0 10px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; white-space: nowrap; color: var(--muted-foreground); }
+.eo-seg-item:hover { color: var(--foreground); }
+.eo-seg-item[aria-pressed="true"] { color: var(--cyan); }
+.eo-seg:not([data-ready]) .eo-seg-item[aria-pressed="true"] { background: color-mix(in oklab, var(--cyan) 15%, transparent); }
+.eo-seg-indicator { position: absolute; left: 0; top: 0; z-index: 0; pointer-events: none; border-radius: 6px; background: linear-gradient(180deg, color-mix(in oklab, var(--cyan) 18%, transparent), color-mix(in oklab, var(--primary) 14%, transparent)); box-shadow: inset 0 1px 0 var(--surface-edge), 0 0 0 1px color-mix(in oklab, var(--cyan) 35%, transparent), 0 4px 14px -6px var(--cyan); transition: transform var(--duration-slow) var(--ease-spring), width var(--duration-slow) var(--ease-out), height var(--duration-control) var(--ease-out); }
+
+/* ── Range slider: native input, custom track / fill / thumb, marks share thumb-travel maths ── */
+.eo-range-wrap { position: relative; --p: 0; }
+.eo-range-wrap-marks { padding-bottom: 22px; }
+.eo-range { -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 28px; margin: 0; background: transparent; cursor: pointer; touch-action: pan-y; }
+.eo-range:focus, .eo-range:focus-visible { outline: none; box-shadow: none; }
+.eo-range::-webkit-slider-runnable-track { height: 8px; border-radius: 999px; background: linear-gradient(90deg, var(--cyan), var(--primary)) 0 0 / calc(var(--thumb-r) + (100% - var(--thumb-r) * 2) * var(--p)) 100% no-repeat, var(--window); box-shadow: inset 0 1px 2px oklch(0 0 0 / .55), 0 0 0 1px var(--border), 0 1px 0 var(--surface-edge); }
+.eo-range::-moz-range-track { height: 8px; border-radius: 999px; background: var(--window); box-shadow: inset 0 1px 2px oklch(0 0 0 / .55), 0 0 0 1px var(--border); }
+.eo-range::-moz-range-progress { height: 8px; border-radius: 999px; background: linear-gradient(90deg, var(--cyan), var(--primary)); }
+.eo-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: calc(var(--thumb-r) * 2); height: calc(var(--thumb-r) * 2); margin-top: calc(4px - var(--thumb-r)); border-radius: 50%; border: 1px solid color-mix(in oklab, var(--foreground) 70%, transparent); background: radial-gradient(circle at 50% 50%, var(--cyan) 0 3px, transparent 3.5px), radial-gradient(circle at 35% 25%, var(--foreground), color-mix(in oklab, var(--foreground) 78%, var(--cyan)) 70%); box-shadow: 0 0 0 0 color-mix(in oklab, var(--cyan) 22%, transparent), 0 2px 6px oklch(0 0 0 / .55), 0 0 14px -3px var(--cyan); transition: transform var(--duration-fast) var(--ease-out), box-shadow var(--duration-control) var(--ease-out); }
+.eo-range::-moz-range-thumb { width: calc(var(--thumb-r) * 2); height: calc(var(--thumb-r) * 2); border-radius: 50%; border: 1px solid color-mix(in oklab, var(--foreground) 70%, transparent); background: radial-gradient(circle at 50% 50%, var(--cyan) 0 3px, transparent 3.5px), radial-gradient(circle at 35% 25%, var(--foreground), color-mix(in oklab, var(--foreground) 78%, var(--cyan)) 70%); box-shadow: 0 2px 6px oklch(0 0 0 / .55), 0 0 14px -3px var(--cyan); transition: transform var(--duration-fast) var(--ease-out), box-shadow var(--duration-control) var(--ease-out); }
+.eo-range:hover::-webkit-slider-thumb { transform: scale(1.06); box-shadow: 0 0 0 5px color-mix(in oklab, var(--cyan) 14%, transparent), 0 2px 6px oklch(0 0 0 / .55), 0 0 16px -2px var(--cyan); }
+.eo-range:active::-webkit-slider-thumb { transform: scale(1.14); box-shadow: 0 0 0 7px color-mix(in oklab, var(--cyan) 20%, transparent), 0 3px 10px oklch(0 0 0 / .6), 0 0 20px -2px var(--cyan); }
+.eo-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--cyan), 0 0 16px -2px var(--cyan); }
+.eo-range:hover::-moz-range-thumb { transform: scale(1.06); }
+.eo-range:active::-moz-range-thumb { transform: scale(1.14); }
+.eo-range:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--cyan); }
+.eo-range-marks { position: absolute; left: 0; right: 0; top: 26px; height: 20px; pointer-events: none; }
+.eo-range-marks span { position: absolute; left: calc(var(--thumb-r) + (100% - var(--thumb-r) * 2) * var(--m)); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 9px; font-weight: 700; white-space: nowrap; color: var(--subtle); transition: color var(--duration-fast); }
+.eo-range-marks span[data-align="start"] { transform: translateX(calc(var(--thumb-r) * -1)); align-items: flex-start; padding-left: calc(var(--thumb-r) - 1px); }
+.eo-range-marks span[data-align="end"] { transform: translateX(calc(-100% + var(--thumb-r))); align-items: flex-end; padding-right: calc(var(--thumb-r) - 1px); }
+.eo-range-marks i { width: 1px; height: 5px; background: var(--border-strong); }
+.eo-range-marks span[data-tone="success"] { color: var(--success); }
+.eo-range-marks span[data-tone="success"] i { width: 2px; height: 7px; background: var(--success); box-shadow: 0 0 6px var(--success); }
+.eo-range-marks span[data-active="true"] { color: var(--foreground); }
+
+/* ── Numeric field with unit ── */
+.eo-number { position: relative; display: flex; align-items: center; height: 40px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--window); box-shadow: inset 0 1px 2px oklch(0 0 0 / .4); transition: border-color var(--duration-control), box-shadow var(--duration-control); }
+.eo-number:hover { border-color: color-mix(in oklab, var(--cyan) 35%, var(--border-strong)); }
+.eo-number:focus-within { border-color: color-mix(in oklab, var(--cyan) 65%, transparent); box-shadow: inset 0 1px 2px oklch(0 0 0 / .4), 0 0 0 3px color-mix(in oklab, var(--cyan) 16%, transparent); }
+.eo-number input { width: 100%; height: 100%; padding: 0 44px 0 12px; background: transparent; border: 0; outline: none; box-shadow: none !important; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--foreground); }
+.eo-number input:focus-visible { outline: none; }
+.eo-number-unit { position: absolute; right: 12px; font-size: 11px; font-weight: 700; color: var(--muted-foreground); }
+
+/* ── RAM limiter ── */
+.eo-ram-grid { grid-template-columns: minmax(0, 1fr) 232px; }
+.eo-ram-side { border-left: 1px solid var(--border); padding-left: 16px; }
+.eo-ram-readout { font-size: 44px; line-height: 1; font-weight: 800; color: var(--foreground); min-width: 4.2ch; text-shadow: 0 0 24px color-mix(in oklab, var(--cyan) 30%, transparent); }
+.eo-ram-readout span { margin-left: 6px; font-size: 16px; font-weight: 700; color: var(--muted-foreground); text-shadow: none; }
+.eo-ram-context { height: 6px; border-radius: 999px; background: repeating-linear-gradient(90deg, var(--window) 0 calc(12.5% - 1px), var(--border) calc(12.5% - 1px) 12.5%); box-shadow: inset 0 0 0 1px var(--border); overflow: hidden; }
+.eo-ram-context span { display: block; height: 100%; width: var(--share); border-radius: inherit; background: linear-gradient(90deg, var(--cyan), var(--primary)); box-shadow: 0 0 10px -2px var(--cyan); }
+
+/* ── Score gauge ── */
+@property --num { syntax: "<integer>"; inherits: false; initial-value: 0; }
+.eo-score { position: relative; flex-shrink: 0; }
+.eo-score::before { content: ""; position: absolute; inset: 22%; border-radius: 50%; background: radial-gradient(circle, color-mix(in oklab, var(--cyan) 14%, transparent), transparent 70%); filter: blur(6px); }
+.eo-score-track { stroke: color-mix(in oklab, var(--window) 70%, var(--border)); }
+.eo-score-arc { filter: drop-shadow(0 0 6px color-mix(in oklab, var(--cyan) 55%, transparent)); animation: eo-score-in var(--duration-score) var(--ease-emphasized) both; }
+.eo-score-tick { stroke: var(--border-strong); stroke-width: 1.2; stroke-linecap: round; }
+.eo-score-tick[data-lit="true"] { stroke: color-mix(in oklab, var(--cyan) 75%, transparent); animation: eo-tick-in var(--duration-score) var(--ease-out) both; animation-delay: calc(var(--i) * 12ms); }
+.eo-score-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.eo-count { counter-reset: num var(--num); animation: eo-count var(--duration-score) var(--ease-emphasized) both; }
+.eo-count::after { content: counter(num); }
+.eo-score-bar { position: relative; height: 5px; border-radius: 999px; background: var(--window); box-shadow: inset 0 0 0 1px var(--border); overflow: hidden; }
+.eo-score-bar::after { content: ""; position: absolute; inset: 0; width: var(--v); border-radius: inherit; background: linear-gradient(90deg, var(--primary), var(--cyan)); transform-origin: left; animation: eo-grow var(--duration-entrance) var(--ease-emphasized) both; animation-delay: calc(200ms + var(--i) * 60ms); }
+
+/* ── Auto Optimize panel ── */
+.eo-auto-mark { display: flex; height: 34px; width: 34px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 10px; color: var(--primary-foreground); background: var(--gradient-brand); box-shadow: var(--shadow-glow), inset 0 1px 0 oklch(1 0 0 / .25); }
+.eo-auto-body { height: 212px; }
+.eo-auto-row { display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--window); transition: border-color var(--duration-control), background-color var(--duration-control), box-shadow var(--duration-control); }
+.eo-auto-row[data-state="active"] { border-color: color-mix(in oklab, var(--cyan) 55%, transparent); background: color-mix(in oklab, var(--cyan) 8%, var(--window)); box-shadow: 0 0 16px -8px var(--cyan); }
+.eo-auto-row[data-state="done"] { border-color: color-mix(in oklab, var(--success) 35%, var(--border)); }
+.eo-auto-profile { border-radius: 8px; border: 1px solid var(--border); background: linear-gradient(180deg, var(--surface-light), transparent), var(--window); padding: 10px 12px; }
+.eo-auto-rec { display: flex; align-items: center; gap: 10px; min-height: 32px; padding: 4px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--window); transition: border-color var(--duration-control), background-color var(--duration-fast); }
+.eo-auto-rec[data-selected="true"] { border-color: color-mix(in oklab, var(--cyan) 40%, transparent); background: color-mix(in oklab, var(--cyan) 5%, var(--window)); }
+.eo-scan { overflow: hidden; }
+.eo-scan::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 40%; pointer-events: none; background: linear-gradient(180deg, transparent, color-mix(in oklab, var(--cyan) 10%, transparent), transparent); animation: eo-scan 1.4s var(--ease-out) infinite; }
+
+/* ── Telemetry console ── */
+.eo-legend { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--window); font-size: 10.5px; font-weight: 700; color: var(--muted-foreground); }
+.eo-legend b { color: var(--foreground); }
+.eo-legend[aria-pressed="true"] { border-color: color-mix(in oklab, var(--series) 50%, transparent); background: color-mix(in oklab, var(--series) 10%, var(--window)); color: var(--foreground); }
+.eo-legend[aria-pressed="false"] { opacity: .6; }
+.eo-legend-dot { display: inline-block; height: 8px; width: 8px; border-radius: 50%; background: var(--series); box-shadow: 0 0 8px var(--series); }
+.eo-tele-plot { cursor: crosshair; border-radius: 6px; }
+.eo-tele-plot:focus-visible { outline: 2px solid var(--cyan); outline-offset: 4px; }
+.eo-morph { transition: d var(--duration-slow) var(--ease-out); }
+/* Morphing telemetry lines use non-scaling strokes, so they reveal left-to-right with a clip
+   instead of the dash draw (a normalized dash would only cover part of a stretched line). */
+.eo-chart path.eo-morph { stroke-dasharray: none; animation: none; }
+.eo-chart:has(.eo-morph) { animation: eo-reveal-x 800ms var(--ease-out) both; }
+@keyframes eo-reveal-x { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+.eo-tele-cross { position: absolute; top: 0; bottom: 0; width: 1px; pointer-events: none; background: linear-gradient(180deg, transparent, color-mix(in oklab, var(--cyan) 70%, transparent), transparent); }
+.eo-tele-dot { position: absolute; height: 10px; width: 10px; margin: -5px 0 0 -5px; pointer-events: none; border-radius: 50%; border: 2px solid var(--background); background: var(--series); box-shadow: 0 0 10px var(--series); transition: top var(--duration-fast) var(--ease-out); }
+.eo-tele-tip { position: absolute; top: 8px; z-index: 5; min-width: 150px; pointer-events: none; border-radius: 8px; border: 1px solid var(--border-strong); padding: 8px 10px; background: linear-gradient(160deg, var(--surface-light), transparent 40%), var(--glass-float); backdrop-filter: var(--glass-blur-float); box-shadow: var(--overlay-shadow); transform: translateX(14px); animation: eo-pop-in 160ms var(--ease-out) both; }
+.eo-tele-tip[data-side="left"] { transform: translateX(calc(-100% - 14px)); }
+
+/* ── V4 workspaces ── */
+.eo-v4-banner { border-radius: 8px; border: 1px solid color-mix(in oklab, var(--warning) 32%, var(--border)); padding: 8px 12px; background: linear-gradient(90deg, color-mix(in oklab, var(--warning) 9%, transparent), transparent 60%), var(--surface-glass); }
+.eo-v4-hero { padding: 18px; }
+.eo-v4-scope { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--window); transition: border-color var(--duration-control), background-color var(--duration-control), box-shadow var(--duration-control), transform var(--duration-control) var(--ease-out); }
+.eo-v4-scope:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+.eo-v4-scope-icon { display: flex; height: 30px; width: 30px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 8px; color: var(--cyan); background: color-mix(in oklab, var(--cyan) 12%, transparent); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--cyan) 22%, transparent); transition: color var(--duration-control), background-color var(--duration-control); }
+.eo-v4-scope[data-state="active"] { border-color: color-mix(in oklab, var(--cyan) 55%, transparent); background: color-mix(in oklab, var(--cyan) 8%, var(--window)); box-shadow: 0 0 18px -8px var(--cyan); }
+.eo-v4-scope[data-state="active"] .eo-v4-scope-icon { animation: eo-pulse 1s ease-in-out infinite; }
+.eo-v4-scope[data-state="done"] { border-color: color-mix(in oklab, var(--success) 35%, var(--border)); }
+.eo-v4-scope[data-state="done"] .eo-v4-scope-icon { color: var(--success); background: color-mix(in oklab, var(--success) 12%, transparent); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--success) 25%, transparent); }
+.eo-v4-cta { min-width: 190px; }
+.eo-v4-guard { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; border-radius: 8px; border: 1px solid color-mix(in oklab, var(--success) 25%, var(--border)); background: color-mix(in oklab, var(--success) 6%, var(--window)); font-size: 11.5px; font-weight: 600; color: var(--success); text-align: center; }
+.eo-v4-rail { padding: 14px; }
+.eo-v4-dot { height: 10px; width: 10px; flex-shrink: 0; border-radius: 50%; background: var(--warning); box-shadow: 0 0 0 3px color-mix(in oklab, var(--warning) 18%, transparent); }
+.eo-v4-dot[data-ok="true"] { background: var(--success); box-shadow: 0 0 0 3px color-mix(in oklab, var(--success) 18%, transparent), 0 0 10px var(--success); }
+.eo-v4-hub:hover { border-color: color-mix(in oklab, var(--cyan) 50%, transparent); color: var(--cyan); }
+.eo-pipeline { position: relative; }
+.eo-pipeline-step { position: relative; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; }
+.eo-pipeline-step:not(:last-child)::before { content: ""; position: absolute; left: 14px; top: 34px; bottom: -12px; width: 2px; border-radius: 2px; background: linear-gradient(180deg, color-mix(in oklab, var(--cyan) 45%, transparent), var(--border)); }
+.eo-pipeline-node { position: relative; z-index: 1; display: flex; height: 30px; width: 30px; margin-top: 14px; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid color-mix(in oklab, var(--cyan) 45%, var(--border)); background: var(--window); font-size: 12px; font-weight: 800; color: var(--cyan); box-shadow: 0 0 0 4px var(--background), 0 0 14px -6px var(--cyan); transition: border-color var(--duration-control), color var(--duration-control), box-shadow var(--duration-control); }
+.eo-pipeline-step[data-state="APPLIED"] .eo-pipeline-node { border-color: var(--success); color: var(--success); box-shadow: 0 0 0 4px var(--background), 0 0 14px -4px var(--success); }
+.eo-pipeline-step[data-state="APPLYING"] .eo-pipeline-node { animation: eo-pulse 1s ease-in-out infinite; }
+.eo-pipeline-step[data-state="NEEDS ADB"] .eo-pipeline-node { border-color: color-mix(in oklab, var(--warning) 50%, var(--border)); color: var(--warning); box-shadow: 0 0 0 4px var(--background); }
+.eo-v4-seq li { display: grid; grid-template-columns: 20px minmax(0, 1fr); align-items: start; gap: 6px; color: var(--muted-foreground); }
+.eo-v4-seq li > span:first-child { display: flex; height: 18px; width: 18px; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid var(--border-strong); font-size: 9.5px; font-weight: 800; }
+.eo-v4-seq li[data-done="true"] { color: var(--foreground); }
+.eo-v4-seq li[data-done="true"] > span:first-child { border-color: var(--success); color: var(--success); background: color-mix(in oklab, var(--success) 12%, transparent); }
+.eo-quick-arrow { transition: transform var(--duration-control) var(--ease-spring); }
+.eo-quick-link:hover .eo-quick-arrow { transform: translate(2px, -2px); }
+.eo-activity { max-height: 236px; overflow-y: auto; }
+
+@keyframes eo-shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+@keyframes eo-pulse { 50% { opacity: .35; } }
+@keyframes eo-spin { to { transform: rotate(360deg); } }
+@keyframes eo-sheen { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+@keyframes eo-page-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes eo-section-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes eo-value-in { from { opacity: .4; transform: translateY(2px); } }
+@keyframes eo-dialog-in { from { opacity: 0; transform: translateY(14px) scale(.965); } to { opacity: 1; transform: none; } }
+@keyframes eo-dialog-out { to { opacity: 0; transform: translateY(6px) scale(.98); } }
+@keyframes eo-pop-in { from { opacity: 0; transform: translateY(-4px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes eo-overlay-in { from { opacity: 0; } }
+@keyframes eo-overlay-out { to { opacity: 0; } }
+@keyframes eo-chart-draw { from { stroke-dashoffset: 1; } }
+@keyframes eo-check-pop { from { transform: scale(.4); opacity: 0; } }
+@keyframes eo-step-in { from { transform: scale(.94); } }
+@keyframes eo-success-pop { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes eo-hero-in { from { opacity: 0; transform: translateY(10px) scale(.992); } }
+@keyframes eo-rise-in { from { opacity: 0; transform: translateY(8px); } }
+@keyframes eo-score-in { from { stroke-dashoffset: var(--len); } }
+@keyframes eo-tick-in { from { stroke: var(--border-strong); } }
+@keyframes eo-count { from { --num: 0; } }
+@keyframes eo-grow { from { transform: scaleX(0); } }
+@keyframes eo-scan { from { transform: translateY(-100%); } to { transform: translateY(260%); } }
+
+/* ── Auto Optimize maintenance engine ── */
+.eo-status-pill { display: inline-flex; align-items: center; gap: 6px; height: 20px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--tone-border, var(--border)); background: var(--tone-bg, var(--window)); color: var(--tone, var(--muted-foreground)); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; transition: color var(--duration-control) var(--ease-out), background-color var(--duration-control) var(--ease-out), border-color var(--duration-control) var(--ease-out); }
+:is(.eo-status-pill, .eo-auto-chip)[data-tone="success"] { --tone: var(--success); }
+:is(.eo-status-pill, .eo-auto-chip)[data-tone="cyan"] { --tone: var(--cyan); }
+:is(.eo-status-pill, .eo-auto-chip)[data-tone="warning"] { --tone: var(--warning); }
+:is(.eo-status-pill, .eo-auto-chip)[data-tone="muted"] { --tone: var(--muted-foreground); }
+.eo-status-pill, .eo-auto-chip { --tone-border: color-mix(in oklab, var(--tone) 35%, transparent); --tone-bg: color-mix(in oklab, var(--tone) 10%, transparent); }
+.eo-status-dot { height: 6px; width: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 3px color-mix(in oklab, currentColor 18%, transparent); }
+.eo-status-pill[data-tone="cyan"] .eo-status-dot { animation: eo-pulse 1s ease-in-out infinite; }
+.eo-auto-chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 6px; border: 1px solid var(--tone-border); background: var(--tone-bg); color: var(--tone); font-size: 10px; font-weight: 800; letter-spacing: .08em; transition: border-color var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out); }
+.eo-auto-chip:hover { border-color: var(--tone); }
+.eo-countdown { border-radius: 10px; border: 1px solid var(--border); padding: 12px 14px; background: radial-gradient(120% 120% at 0% 0%, color-mix(in oklab, var(--cyan) 8%, transparent), transparent 60%), var(--window); }
+.eo-countdown[data-state="Disabled"], .eo-countdown[data-state="Suspended"] { background: var(--window); }
+.eo-countdown-value { font-size: 34px; line-height: 1; font-weight: 700; letter-spacing: -.01em; }
+.eo-countdown[data-state="Disabled"] .eo-countdown-value { color: var(--subtle); }
+.eo-countdown[data-state="Paused"] .eo-countdown-value { color: var(--warning); }
+.eo-interval-track { position: relative; height: 4px; overflow: hidden; border-radius: 999px; background: var(--border); }
+.eo-interval-track > span { position: absolute; inset: 0; transform-origin: left; transform: scaleX(var(--v, 0)); background: var(--gradient-brand); border-radius: inherit; transition: transform 1s linear; }
+.eo-auto-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.eo-auto-facts > div, .eo-mini-fact { min-width: 0; border-radius: 8px; border: 1px solid var(--border); background: var(--window); padding: 7px 10px; }
+.eo-auto-facts dt, .eo-mini-fact span, .eo-auto-strip dt, .eo-sysinfo-list dt { font-size: 10px; font-weight: 600; color: var(--muted-foreground); }
+.eo-auto-facts dd, .eo-mini-fact b, .eo-auto-strip dd, .eo-sysinfo-list dd { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 700; }
+.eo-mini-fact { display: flex; flex-direction: column; }
+.eo-auto-recent { display: flex; min-width: 0; flex-direction: column; border-radius: 10px; border: 1px solid var(--border); background: linear-gradient(180deg, var(--surface-light), transparent), var(--window); padding: 10px 12px; }
+.eo-recent-row { border-radius: 8px; border: 1px solid var(--border); padding: 6px 9px; background: var(--card); animation: eo-rise-in var(--duration-slow) var(--ease-out) backwards; }
+.eo-link { color: var(--cyan); transition: color var(--duration-fast) var(--ease-out); }
+.eo-link:hover { color: var(--foreground); }
+.eo-auto-recent .eo-link { margin-top: auto; padding-top: 8px; }
+.eo-run-row { display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 3px 10px; border-radius: 7px; border: 1px solid var(--border); background: var(--window); font-size: 11.5px; transition: border-color var(--duration-control) var(--ease-out), background-color var(--duration-control) var(--ease-out); }
+.eo-run-dot { height: 7px; width: 7px; flex-shrink: 0; border-radius: 50%; background: var(--border-strong); transition: background-color var(--duration-control) var(--ease-out); }
+.eo-run-state { flex-shrink: 0; font-size: 9.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--subtle); }
+.eo-run-row[data-state="Running"] { border-color: color-mix(in oklab, var(--cyan) 50%, transparent); background: color-mix(in oklab, var(--cyan) 7%, var(--window)); }
+.eo-run-row[data-state="Running"] .eo-run-dot { background: var(--cyan); animation: eo-pulse 1s ease-in-out infinite; }
+.eo-run-row[data-state="Running"] .eo-run-state { color: var(--cyan); }
+.eo-run-row[data-state="Completed"] .eo-run-dot { background: var(--success); }
+.eo-run-row[data-state="Completed"] .eo-run-state { color: var(--success); }
+.eo-run-row[data-state="Skipped"] .eo-run-dot { background: var(--warning); }
+.eo-run-row[data-state="Skipped"] .eo-run-state { color: var(--warning); }
+.eo-run-row[data-state="Cancelled"] .eo-run-dot, .eo-run-row[data-state="Not run"] .eo-run-dot { background: var(--destructive); }
+.eo-run-row[data-state="Cancelled"] .eo-run-state, .eo-run-row[data-state="Not run"] .eo-run-state { color: var(--destructive); }
+.eo-auto-strip { display: grid; grid-template-columns: repeat(3, auto); gap: 4px 22px; text-align: right; }
+.eo-task-group { border-radius: 10px; border: 1px solid var(--border); background: var(--window); overflow: hidden; }
+.eo-task-group-head { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: linear-gradient(180deg, var(--surface-light), transparent); border-bottom: 1px solid var(--border); }
+.eo-task-row { padding: 7px 12px; border-top: 1px solid color-mix(in oklab, var(--border) 60%, transparent); transition: background-color var(--duration-control) var(--ease-out); }
+.eo-task-row:first-child { border-top: 0; }
+.eo-task-row:hover { background: color-mix(in oklab, var(--highlight) 45%, transparent); }
+.eo-task-row[data-selected] { background: color-mix(in oklab, var(--cyan) 4%, transparent); }
+.eo-task-details { margin: 6px 0 2px 30px; display: grid; gap: 3px; font-size: 11px; color: var(--muted-foreground); }
+.eo-chevron { transition: transform var(--duration-control) var(--ease-out); }
+.eo-setting-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 9px 0; border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent); }
+.eo-section-title + .eo-setting-row { border-top: 0; padding-top: 0; }
+.eo-radio-card { display: flex; width: 100%; align-items: flex-start; gap: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--window); padding: 7px 10px; text-align: left; transition: border-color var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out); }
+.eo-radio-card:hover { border-color: var(--border-strong); }
+.eo-radio-card[aria-checked="true"] { border-color: color-mix(in oklab, var(--cyan) 55%, transparent); background: color-mix(in oklab, var(--cyan) 7%, var(--window)); }
+.eo-radio { margin-top: 2px; height: 14px; width: 14px; flex-shrink: 0; border-radius: 50%; border: 1.5px solid var(--border-strong); transition: border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out); }
+.eo-radio-card[aria-checked="true"] .eo-radio { border-color: var(--cyan); box-shadow: inset 0 0 0 3px var(--window), inset 0 0 0 8px var(--cyan); }
+.eo-input { border-radius: 8px; border: 1px solid var(--border-strong); background: var(--window); padding: 0 10px; font-size: 13px; transition: border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out); }
+.eo-input:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 3px color-mix(in oklab, var(--cyan) 22%, transparent); }
+.eo-input-invalid, .eo-input-invalid:focus { border-color: var(--destructive); box-shadow: 0 0 0 3px color-mix(in oklab, var(--destructive) 20%, transparent); }
+.eo-lifecycle-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; border-radius: 10px; border: 1px solid var(--border); background: var(--window); padding: 10px 12px; text-align: left; transition: border-color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out), box-shadow var(--duration-control) var(--ease-out); }
+.eo-lifecycle-btn:hover { border-color: color-mix(in oklab, var(--cyan) 45%, transparent); transform: translateY(var(--lift-hover)); box-shadow: var(--shadow-elevated); }
+.eo-lifecycle-btn:active { transform: scale(.985); }
+.eo-history-row { display: grid; grid-template-columns: 64px minmax(140px, 200px) minmax(0, 1fr) 100px 28px; align-items: center; gap: 12px; padding: 7px 12px; border-top: 1px solid var(--border); font-size: 12px; }
+.eo-history-head { border-top: 0; background: var(--window); font-size: 9.5px; font-weight: 800; letter-spacing: .12em; color: var(--subtle); }
+.eo-history-items { display: grid; gap: 4px; padding: 0 12px 10px 88px; }
+.eo-save-bar { position: sticky; bottom: 12px; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-strong); background: var(--glass-float); backdrop-filter: var(--glass-blur-float); box-shadow: var(--overlay-shadow); }
+.eo-sysinfo { display: flex; align-items: center; gap: 16px; }
+.eo-sysinfo-list { display: grid; flex: 1; min-width: 0; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; }
+.eo-sysinfo-list > div { min-width: 0; border-left: 1px solid var(--border); padding-left: 12px; }
+.eo-sysinfo-list > div:first-child { border-left: 0; padding-left: 0; }
+/* ══ Product system (final): page rhythm, panels, metric strips, controls, dialogs ══ */
+/* One vertical rhythm for every destination: sections sit --section-gap apart. */
+.eo-page-content > :is(.space-y-4, .space-y-3\.5, .space-y-3) > :not(:last-child) { margin-block-end: var(--section-gap); }
+.eo-page-header { margin: 0; padding: 0 0 2px; border: 0; border-image: none; min-height: 40px; }
+.eo-page-header h1 { font-size: 18px; line-height: 1.2; letter-spacing: .02em !important; }
+.eo-page-header p { margin-top: 2px; font-size: 12px; line-height: 1.45; }
+.eo-section-title { border-bottom: 0; padding-bottom: 0; margin-bottom: 12px; }
+.eo-section-title h2 { font-size: 11px; }
+.eo-section-title > div > p { font-size: 11.5px; }
+
+/* Back navigation */
+.eo-back { display: inline-flex; flex-shrink: 0; align-items: center; gap: 6px; height: 30px; padding: 0 12px 0 10px; border-radius: 8px; border: 1px solid var(--border-strong); background: linear-gradient(180deg, var(--surface-light), transparent), var(--window); font-size: 11px; font-weight: 700; color: var(--muted-foreground); box-shadow: inset 0 1px 0 var(--surface-edge); }
+.eo-back svg { transition: transform var(--duration-control) var(--ease-spring); }
+.eo-back:hover { color: var(--foreground); border-color: color-mix(in oklab, var(--cyan) 45%, var(--border-strong)); }
+.eo-back:hover svg { transform: translateX(-2px); color: var(--cyan); }
+
+/* Metric strip: one panel, hairline dividers, cells wrap by width */
+.eo-metrics { overflow: hidden; border-radius: 10px; border: 1px solid var(--border); background: var(--gradient-card); box-shadow: var(--shadow-card); }
+.eo-metrics-inner { display: flex; flex-wrap: wrap; margin: -1px 0 0 -1px; }
+.eo-metric { position: relative; flex: 1 1 128px; min-width: 0; padding: 10px 14px 11px; border-left: 1px solid var(--border); border-top: 1px solid var(--border); transition: background-color var(--duration-standard) var(--ease-out); }
+.eo-metric::before { content: ""; position: absolute; left: 14px; right: 14px; top: 0; height: 2px; border-radius: 0 0 2px 2px; background: currentColor; opacity: 0; transform: scaleX(.4); transition: opacity var(--duration-standard) var(--ease-out), transform var(--duration-standard) var(--ease-out); color: var(--cyan); }
+.eo-metric:hover { background: color-mix(in oklab, var(--highlight) 40%, transparent); }
+.eo-metric:hover::before { opacity: .9; transform: none; }
+.eo-metric .eo-stat-value { margin-top: 3px; font-size: 20px; line-height: 1.15; font-weight: 700; overflow-wrap: anywhere; }
+.eo-metric-sub { margin-top: 1px; font-size: 10.5px; color: var(--subtle); }
+
+/* Panels: quieter edges, consistent hover elevation */
+.eo-card { border-radius: 10px; }
+.eo-card .eo-card { border-radius: 8px; }
+.eo-depth:hover { border-color: color-mix(in oklab, var(--cyan) 22%, var(--border-strong)); }
+
+/* Buttons: one height scale, restrained glow, crisp press */
+.eo-btn { letter-spacing: .06em !important; }
+.eo-btn:hover:not(:disabled) { box-shadow: 0 4px 14px -10px var(--cyan); }
+.eo-btn:hover:not(:disabled) svg { transform: scale(1.08); }
+.eo-btn-primary { box-shadow: 0 0 0 1px color-mix(in oklab, var(--cyan) 30%, transparent), 0 6px 16px -10px var(--primary), inset 0 1px 0 oklch(1 0 0 / .2); }
+.eo-btn-primary:hover:not(:disabled) { box-shadow: 0 0 0 1px color-mix(in oklab, var(--cyan) 45%, transparent), 0 10px 22px -12px var(--primary), inset 0 1px 0 oklch(1 0 0 / .22); }
+.eo-btn:disabled { filter: saturate(.4); }
+
+/* Switch */
+.eo-switch { border-color: var(--border-strong); background: var(--window); box-shadow: inset 0 1px 2px oklch(0 0 0 / .45); transition: background-color var(--duration-control) var(--ease-out), border-color var(--duration-control), box-shadow var(--duration-control); }
+.eo-switch:hover { border-color: color-mix(in oklab, var(--cyan) 35%, var(--border-strong)); }
+.eo-switch .eo-toggle-thumb { background: var(--subtle); box-shadow: 0 1px 2px oklch(0 0 0 / .5); }
+.eo-switch[aria-checked="true"] { border-color: color-mix(in oklab, var(--cyan) 55%, transparent); background: linear-gradient(90deg, color-mix(in oklab, var(--primary) 55%, transparent), color-mix(in oklab, var(--cyan) 45%, transparent)); box-shadow: inset 0 1px 0 oklch(1 0 0 / .12), 0 0 12px -5px var(--cyan); }
+.eo-switch[aria-checked="true"] .eo-toggle-thumb { background: var(--foreground); box-shadow: 0 1px 3px oklch(0 0 0 / .45), 0 0 8px color-mix(in oklab, var(--cyan) 50%, transparent); }
+
+/* Progress track */
+.eo-bar-fill { background-image: linear-gradient(90deg, oklch(1 0 0 / 0), oklch(1 0 0 / .22)); box-shadow: 0 0 10px -3px currentColor; }
+[role="progressbar"].bg-window { box-shadow: inset 0 1px 1px oklch(0 0 0 / .4), inset 0 0 0 1px var(--border); }
+
+/* Inline disclosure (Advanced settings inside a panel) */
+.eo-disclosure { border-top: 1px solid var(--border); }
+.eo-disclosure-btn { border-radius: 6px; }
+.eo-disclosure-btn:hover .eo-label { color: var(--foreground); }
+.eo-disclosure[data-open="true"] .eo-disclosure-btn .eo-label { color: var(--cyan); }
+
+/* Dialog header icon tile */
+.eo-modal-icon { display: flex; height: 32px; width: 32px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 9px; color: var(--tone, var(--cyan)); background: color-mix(in oklab, var(--tone, var(--cyan)) 13%, transparent); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--tone, var(--cyan)) 28%, transparent); animation: eo-check-pop var(--duration-dialog) var(--ease-spring) both; animation-delay: 80ms; }
+.eo-modal-icon[data-tone="success"] { --tone: var(--success); }
+.eo-modal-icon[data-tone="warning"] { --tone: var(--warning); }
+.eo-modal-icon[data-tone="danger"] { --tone: var(--destructive); }
+.eo-modal .eo-modal-head + div > * { animation: eo-section-in var(--duration-dialog) var(--ease-emphasized) backwards; animation-delay: 60ms; }
+
+/* Optimization progress (shared by run dialogs) */
+.eo-op { display: grid; gap: 12px; }
+.eo-op-head { display: flex; align-items: center; gap: 14px; }
+.eo-op-ring { position: relative; height: 56px; width: 56px; flex-shrink: 0; }
+.eo-op-ring svg { transform: rotate(-90deg); }
+.eo-op-ring circle { fill: none; stroke-width: 5; }
+.eo-op-ring .eo-op-track { stroke: color-mix(in oklab, var(--window) 60%, var(--border)); }
+.eo-op-ring .eo-op-arc { stroke: url(#eo-op-grad); stroke-linecap: round; transition: stroke-dashoffset 420ms var(--ease-out); filter: drop-shadow(0 0 5px color-mix(in oklab, var(--cyan) 55%, transparent)); }
+.eo-op-ring span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.eo-op-current { font-size: 13px; font-weight: 700; }
+.eo-op-current span { animation: eo-rise-in var(--duration-standard) var(--ease-out) both; display: inline-block; }
+
+/* Sidebar: consistent item box, quieter hover, crisp active state */
+.eo-dock .eo-nav-item { border-radius: 10px; }
+.eo-dock .eo-nav-item:not([aria-current="page"]):hover { background: linear-gradient(180deg, color-mix(in oklab, var(--highlight) 70%, transparent), color-mix(in oklab, var(--highlight) 35%, transparent)); box-shadow: inset 0 1px 0 var(--surface-edge); }
+.eo-dock .eo-nav-label { font-size: 9px; letter-spacing: .04em !important; }
+.eo-dock-sep { background: linear-gradient(90deg, transparent, var(--border-strong), transparent) !important; }
+.eo-shell-tabs .eo-nav-item:not([aria-current="page"]):hover { background: color-mix(in oklab, var(--highlight) 55%, transparent); }
+.eo-chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 6px; border: 1px solid var(--border); font-size: 10px; font-weight: 700; letter-spacing: .08em !important; color: var(--muted-foreground); }
+.eo-chip[data-tone="warning"] { border-color: color-mix(in oklab, var(--warning) 35%, transparent); background: color-mix(in oklab, var(--warning) 8%, transparent); color: var(--warning); }
+
+/* Compact list rows inside panels (shared row language) */
+.eo-page-content .eo-card :is(.rounded-lg, .rounded-md).border.bg-window { border-color: color-mix(in oklab, var(--border) 85%, transparent); }
+
+/* ── Auto Optimize: compact settings workspace ── */
+.eo-ao-master { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 18px; }
+.eo-ao-facts { display: flex; gap: 0; }
+.eo-ao-facts > div { min-width: 96px; padding: 0 16px; border-left: 1px solid var(--border); }
+.eo-ao-facts dt { font-size: 10px; font-weight: 600; color: var(--muted-foreground); }
+.eo-ao-facts dd { font-size: 13px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.eo-ao-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1fr); align-items: start; gap: var(--section-gap); }
+.eo-ao-side { position: sticky; top: 0; }
+.eo-ao-group + .eo-ao-group { margin-top: 8px; }
+.eo-ao-group { border-radius: 8px; border: 1px solid var(--border); background: var(--window); overflow: hidden; }
+.eo-ao-group-head { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 10px; background: linear-gradient(180deg, var(--surface-light), transparent); border-bottom: 1px solid var(--border); }
+.eo-ao-icon { display: flex; height: 22px; width: 22px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 6px; color: var(--cyan); background: color-mix(in oklab, var(--cyan) 11%, transparent); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--cyan) 20%, transparent); }
+.eo-ao-row { border-top: 1px solid color-mix(in oklab, var(--border) 55%, transparent); transition: background-color var(--duration-standard) var(--ease-out); }
+.eo-ao-row:first-child { border-top: 0; }
+.eo-ao-row-main { display: flex; align-items: center; gap: 10px; min-height: 32px; padding: 3px 6px 3px 10px; cursor: default; }
+.eo-ao-row:hover { background: color-mix(in oklab, var(--highlight) 45%, transparent); }
+.eo-ao-row[data-selected] { background: color-mix(in oklab, var(--cyan) 4.5%, transparent); }
+.eo-ao-row[data-selected]:hover { background: color-mix(in oklab, var(--cyan) 8%, transparent); }
+.eo-ao-row-details { padding: 0 12px 9px 38px; display: grid; gap: 3px; font-size: 11px; color: var(--muted-foreground); }
+.eo-ao-sub { display: block; font-size: 10px; font-weight: 800; letter-spacing: .1em !important; text-transform: uppercase; color: var(--subtle); margin-bottom: 8px; }
+.eo-ao-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; padding: 4px 0; }
+.eo-ao-toggle + .eo-ao-toggle { border-top: 1px solid color-mix(in oklab, var(--border) 60%, transparent); }
+.eo-ao-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 12px -16px -16px; padding: 10px 16px; border-top: 1px solid var(--border); border-radius: 0 0 10px 10px; background: color-mix(in oklab, var(--window) 55%, transparent); }
+.eo-ao-foot[data-dirty="true"] { background: linear-gradient(90deg, color-mix(in oklab, var(--cyan) 9%, transparent), transparent 70%), color-mix(in oklab, var(--window) 55%, transparent); }
+.eo-ao-sim { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.eo-ao-sim button { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--border); background: var(--window); font-size: 11px; font-weight: 600; text-align: left; }
+.eo-ao-sim button:hover { border-color: color-mix(in oklab, var(--cyan) 45%, transparent); color: var(--foreground); }
+@container (max-width: 1000px) {
+  .eo-page-content .eo-ao-master { grid-template-columns: auto minmax(0, 1fr) auto; row-gap: 10px; }
+  .eo-page-content .eo-ao-facts { order: 5; grid-column: 1 / -1; padding-left: 54px; }
+  .eo-page-content .eo-ao-facts > div:first-child { border-left: 0; padding-left: 0; }
+  .eo-page-content .eo-ao-layout { grid-template-columns: minmax(0, 1.25fr) minmax(300px, 1fr); }
+}
+@container (max-width: 820px) {
+  .eo-page-content .eo-ao-layout { grid-template-columns: minmax(0, 1fr); }
+  .eo-page-content .eo-ao-side { position: static; }
+}
+
+@container (max-width: 980px) {
+  .eo-page-content .eo-auto-layout { grid-template-columns: minmax(0, 1fr) !important; }
+  .eo-page-content .eo-lifecycle { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .eo-page-content .eo-auto-master { grid-template-columns: auto minmax(0, 1fr) !important; }
+  .eo-page-content .eo-auto-strip { grid-column: 1 / -1; text-align: left; justify-content: start; }
+  .eo-page-content .eo-sysinfo-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .eo-page-content .eo-sysinfo-list > div:nth-child(4) { border-left: 0; padding-left: 0; }
+}
+
+@container (max-width: 1050px) {
+  .eo-page-content .grid-cols-5 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .eo-page-content .grid-cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .eo-stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  .eo-page-content .eo-telemetry-split { grid-template-columns: minmax(0,1fr) !important; }
+  .eo-page-content .eo-ram-grid { grid-template-columns: minmax(0, 1fr) 200px; }
+}
+@container (max-width: 900px) {
+  .eo-page-content .eo-engine-layout { grid-template-columns: minmax(0,1fr) !important; }
+  .eo-page-content .eo-engine-layout > aside { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+  .eo-page-content .eo-engine-layout > aside > * { margin: 0 !important; }
+}
+@container (max-width: 760px) {
+  .eo-page-content .grid-cols-3, .eo-page-content .grid-cols-7 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .eo-page-content .eo-cols, .eo-page-content .eo-engine-layout, .eo-page-content .eo-profile-overview, .eo-page-content .eo-dash-hero, .eo-page-content .eo-ram-grid, .eo-page-content .eo-v4-conn { grid-template-columns: minmax(0,1fr) !important; }
+  .eo-page-content .eo-ram-side { border-left: 0; padding-left: 0; }
+  .eo-page-content .eo-auto-body { height: auto; min-height: 212px; }
+  .eo-page-content .eo-console { position: static; }
+  .eo-page-content .grid-cols-2 { grid-template-columns: minmax(0,1fr); }
+}
+/* Short desktop windows: tighten the dock so more entries fit without scrolling */
+@media (max-height: 860px) {
+  .eo-dock .eo-nav-item { padding-top: 6px; padding-bottom: 6px; gap: 3px; }
+  .eo-dock .eo-dock-sep { margin-top: 4px; margin-bottom: 4px; }
+}
+@media (max-width: 760px) {
+  :root { --page-pad-x: 14px; --page-pad-y: 14px; }
+  .eo-shell-header { height: auto; min-height: 48px; flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+  .eo-shell-header .eo-service-label { display: none; }
+  .eo-shell-brand { font-size: 12px; }
+  .eo-shell-footer > span:last-child { display: none; }
+  .eo-shell-tabs { height: auto; min-height: 44px; padding: 6px; }
+  .eo-shell-tabs > span { display: none; }
+  .eo-shell-tabs a { padding: 8px; font-size: 10px; }
+  .eo-dock { width: 60px !important; }
+  .eo-dock .eo-nav-item { width: 44px; }
+  .eo-dock .eo-nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .eo-dock-toggle { display: none; }
+}
+/* Touch / no-hover devices: no pointer-reactive movement */
+@media (hover: none) {
+  .eo-depth, .eo-depth:hover, .eo-stat:hover { transform: none !important; }
+  .eo-depth::before { display: none; }
+}
+html[data-depth="flat"] .eo-depth { transform: none; }
+html[data-depth="flat"] .eo-depth::before { display: none; }
+html[data-depth="deep"] { --shadow-card: inset 0 1px 0 var(--surface-edge), 0 2px 4px oklch(0 0 0 / 0.35), 0 16px 40px -18px oklch(0 0 0 / 0.95); --lift-hover: -3px; }
+html[data-motion="reduced"] *, html[data-motion="reduced"] *::before, html[data-motion="reduced"] *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+html[data-motion="reduced"] .eo-depth, html[data-motion="reduced"] .eo-stat:hover { transform: none !important; }
+html[data-transitions="off"] .eo-enter, html[data-transitions="off"] .eo-enter > div > * { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  .eo-depth, .eo-stat:hover { transform: none !important; }
+}
+
+/* ── Selectable optimization rows (CheckRow) + selection bar ── */
+.eo-check-row { display: flex; width: 100%; min-width: 0; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 9px; border: 1px solid color-mix(in oklab, var(--border) 90%, transparent); background: var(--window); text-align: left; transition: border-color var(--duration-control) var(--ease-out), background-color var(--duration-control) var(--ease-out), transform var(--duration-control) var(--ease-out), box-shadow var(--duration-control) var(--ease-out); }
+button.eo-check-row:hover { border-color: var(--border-strong); transform: translateY(-1px); box-shadow: 0 6px 16px -12px oklch(0 0 0 / .9); }
+button.eo-check-row:active { transform: translateY(0); box-shadow: var(--shadow-pressed); }
+.eo-check-row[data-on="true"] { border-color: color-mix(in oklab, var(--cyan) 38%, var(--border)); background: linear-gradient(90deg, color-mix(in oklab, var(--cyan) 8%, transparent), transparent 70%), var(--window); }
+.eo-check-row .eo-check { transition: background-color var(--duration-fast), border-color var(--duration-fast), transform var(--duration-control) var(--ease-spring); }
+.eo-check-row[data-on="true"] .eo-check { transform: scale(1.04); }
+.eo-check-row[data-state="active"] { border-color: color-mix(in oklab, var(--cyan) 60%, transparent); box-shadow: 0 0 18px -8px var(--cyan); }
+.eo-check-row[data-state="active"] .eo-row-icon { animation: eo-pulse 1s ease-in-out infinite; }
+.eo-check-row[data-state="done"] { border-color: color-mix(in oklab, var(--success) 38%, var(--border)); }
+.eo-check-row[data-state="done"] .eo-row-icon { color: var(--success); background: color-mix(in oklab, var(--success) 12%, transparent); }
+.eo-check-row[data-locked="true"] { opacity: .62; cursor: not-allowed; }
+.eo-row-icon { display: flex; height: 30px; width: 30px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 8px; color: var(--cyan); background: color-mix(in oklab, var(--cyan) 12%, transparent); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--cyan) 22%, transparent); transition: color var(--duration-control), background-color var(--duration-control); }
+.eo-sel-bar { display: inline-flex; align-items: center; gap: 4px; padding-left: 10px; border-left: 1px solid var(--border); }
+
+/* ── V4 workspaces (Maximum Performance and the three emulator pages) ── */
+.eo-v4-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.eo-v4-scope-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.eo-v4-action { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+.eo-rail-sep { height: 1px; margin: 12px 0; background: linear-gradient(90deg, transparent, var(--border-strong), transparent); }
+.eo-v4-engine { padding: 14px 16px; }
+.eo-v4-engine-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.eo-pipeline-node { margin-top: 12px; }
+.eo-v4-counts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: hidden; border-radius: 8px; border: 1px solid var(--border); background: var(--window); text-align: center; }
+.eo-v4-counts > div { padding: 8px 4px; }
+.eo-v4-counts > div + div { border-left: 1px solid var(--border); }
+.eo-v4-hub-card { display: flex; width: 100%; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; border: 1px solid color-mix(in oklab, var(--cyan) 30%, var(--border)); background: linear-gradient(120deg, color-mix(in oklab, var(--cyan) 9%, transparent), transparent 70%), var(--gradient-card); box-shadow: var(--shadow-card); color: var(--foreground); transition: border-color var(--duration-control), transform var(--duration-control) var(--ease-out), box-shadow var(--duration-control); }
+.eo-v4-hub-card:hover { border-color: color-mix(in oklab, var(--cyan) 60%, transparent); transform: translateY(-1px); box-shadow: var(--shadow-elevated); }
+.eo-v4-hub-card > svg { color: var(--cyan); transition: transform var(--duration-control) var(--ease-spring); }
+.eo-v4-hub-card:hover > svg { transform: translate(2px, -2px); }
+.eo-module-card { padding: 16px; }
+.eo-profile-pick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.eo-profile-option { display: block; padding: 14px 16px; border-radius: 10px; border: 1px solid var(--border); background: var(--gradient-card); box-shadow: var(--shadow-card); text-align: left; transition: border-color var(--duration-control), box-shadow var(--duration-control), transform var(--duration-control) var(--ease-out); }
+.eo-profile-option:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+.eo-profile-option[aria-checked="true"] { border-color: color-mix(in oklab, var(--cyan) 60%, transparent); box-shadow: var(--shadow-glow), inset 0 0 0 1px color-mix(in oklab, var(--cyan) 25%, transparent); }
+.eo-action-bar { position: sticky; bottom: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--glass-chrome); backdrop-filter: var(--glass-blur-chrome); box-shadow: var(--shadow-elevated); }
+
+/* ── Shell: logo, V3/V4 switcher, V4 navigation ── */
+.eo-logo { display: flex; align-items: center; gap: 9px; border-radius: 8px; }
+.eo-logo-mark { position: relative; display: flex; height: 30px; width: 30px; align-items: center; justify-content: center; border-radius: 9px; color: var(--primary-foreground); background: var(--gradient-brand); box-shadow: var(--shadow-glow), inset 0 1px 0 color-mix(in oklab, var(--foreground) 35%, transparent); transition: transform var(--duration-control) var(--ease-spring), box-shadow var(--duration-control); }
+.eo-logo-mark svg { fill: currentColor; }
+.eo-logo-mark::after { content: ""; position: absolute; inset: -3px; border-radius: 11px; border: 1px solid color-mix(in oklab, var(--cyan) 30%, transparent); opacity: .7; }
+.eo-logo:hover .eo-logo-mark { transform: rotate(-6deg) scale(1.04); }
+.eo-logo-text { display: flex; flex-direction: column; line-height: 1.05; }
+.eo-logo-text .eo-shell-brand { font-size: 13.5px; font-weight: 900; letter-spacing: .06em; }
+.eo-logo-edition { margin-top: 2px; font-size: 8.5px; font-weight: 800; letter-spacing: .2em; color: var(--cyan); }
+.eo-suite { position: relative; display: inline-grid; grid-template-columns: 44px 44px; padding: 3px; border-radius: 9px; border: 1px solid var(--border); background: color-mix(in oklab, var(--window) 85%, transparent); box-shadow: inset 0 1px 3px oklch(0 0 0 / .4); }
+.eo-suite-thumb { position: absolute; top: 3px; left: 3px; height: 24px; width: 44px; border-radius: 6px; background: var(--gradient-brand); box-shadow: 0 2px 10px -4px var(--primary), inset 0 1px 0 color-mix(in oklab, var(--foreground) 30%, transparent); transition: transform var(--duration-slow) var(--ease-spring); }
+.eo-suite[data-v4="true"] .eo-suite-thumb { transform: translateX(44px); }
+.eo-suite-opt { position: relative; z-index: 1; height: 24px; border-radius: 6px; font-size: 10.5px; font-weight: 900; letter-spacing: .14em; color: var(--muted-foreground); transition: color var(--duration-control); }
+.eo-suite-opt:hover { color: var(--foreground); }
+.eo-suite-opt[aria-pressed="true"] { color: var(--primary-foreground); cursor: default; }
+.eo-suite-opt:active:not([aria-pressed="true"]) { transform: translateY(1px); }
+.eo-v4-nav { height: 54px; box-shadow: inset 0 -1px 0 var(--border), 0 8px 18px -16px oklch(0 0 0 / .9); }
+.eo-v4-tab { display: flex; height: 42px; align-items: center; gap: 10px; padding: 0 16px 0 8px; border-radius: 10px; color: var(--muted-foreground); transition: color var(--duration-control), background-color var(--duration-control), transform var(--duration-control) var(--ease-out); }
+.eo-v4-tab:hover { color: var(--foreground); transform: translateY(-1px); }
+.eo-v4-tab[aria-current="page"] { color: var(--foreground); }
+.eo-v4-tab-icon { display: flex; height: 30px; width: 30px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid var(--border); background: var(--window); color: var(--muted-foreground); transition: color var(--duration-control), border-color var(--duration-control), background var(--duration-control), box-shadow var(--duration-control); }
+.eo-v4-tab:hover .eo-v4-tab-icon { color: var(--cyan); border-color: var(--border-strong); }
+.eo-v4-tab[aria-current="page"] .eo-v4-tab-icon { color: var(--primary-foreground); border-color: transparent; background: var(--gradient-brand); box-shadow: var(--shadow-glow); }
+.eo-v4-tab[aria-current="page"] svg { filter: none; }
+.eo-v4-tab-label { font-size: 12px; font-weight: 800; letter-spacing: .02em; white-space: nowrap; }
+.eo-v4-tab-sub { font-size: 9.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--subtle); white-space: nowrap; }
+.eo-v4-tab[aria-current="page"] .eo-v4-tab-sub { color: var(--cyan); }
+.eo-v4-nav .eo-tab-indicator { border-radius: 10px; background: linear-gradient(180deg, color-mix(in oklab, var(--cyan) 11%, transparent), color-mix(in oklab, var(--primary) 8%, transparent)); box-shadow: inset 0 1px 0 var(--surface-edge), inset 0 0 0 1px color-mix(in oklab, var(--cyan) 22%, transparent), inset 0 -2px 0 var(--cyan); }
+.eo-v4-crumb { display: flex; align-items: center; gap: 8px; font-size: 10.5px; font-weight: 700; color: var(--muted-foreground); }
+
+/* ── Dashboard Quick Actions (run in place) ── */
+.eo-quick { position: relative; display: flex; min-height: 136px; flex-direction: column; overflow: hidden; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--gradient-card); box-shadow: var(--shadow-card); text-align: left; transition: border-color var(--duration-control), transform var(--duration-control) var(--ease-out), box-shadow var(--duration-control); }
+.eo-quick:hover:not([aria-disabled="true"]) { border-color: color-mix(in oklab, var(--cyan) 45%, var(--border)); transform: translateY(-2px); box-shadow: var(--shadow-elevated); }
+.eo-quick:active:not([aria-disabled="true"]) { transform: translateY(0); box-shadow: var(--shadow-pressed); }
+.eo-quick[data-primary="true"] { border-color: color-mix(in oklab, var(--primary) 55%, var(--border)); background: linear-gradient(140deg, color-mix(in oklab, var(--primary) 16%, transparent), transparent 70%), var(--gradient-card); }
+.eo-quick[data-state="running"] { border-color: color-mix(in oklab, var(--cyan) 60%, transparent); box-shadow: var(--shadow-glow); }
+.eo-quick[data-state="done"] { border-color: color-mix(in oklab, var(--success) 40%, var(--border)); }
+.eo-quick[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
+.eo-quick-icon { display: flex; height: 30px; width: 30px; align-items: center; justify-content: center; border-radius: 8px; color: var(--cyan); background: color-mix(in oklab, var(--cyan) 12%, transparent); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--cyan) 22%, transparent); transition: transform var(--duration-control) var(--ease-spring); }
+.eo-quick:hover:not([aria-disabled="true"]) .eo-quick-icon { transform: translateY(-1px) scale(1.06); }
+.eo-quick[data-state="running"] .eo-quick-icon { animation: eo-pulse 1s ease-in-out infinite; }
+.eo-quick-arrow { transition: transform var(--duration-control) var(--ease-spring); }
+.eo-quick:hover .eo-quick-arrow { transform: translate(2px, -2px); }
+.eo-quick-foot { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--subtle); }
+.eo-quick-progress { position: relative; height: 4px; flex: 1; overflow: hidden; border-radius: 4px; background: color-mix(in oklab, var(--window) 60%, var(--border)); }
+.eo-quick-progress > span { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: var(--gradient-brand); transition: width 160ms linear; }
+.eo-quick-summary { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 10px 12px; border-radius: 9px; border: 1px solid color-mix(in oklab, var(--success) 30%, var(--border)); background: color-mix(in oklab, var(--success) 6%, var(--window)); font-size: 12px; color: var(--muted-foreground); }
+.eo-quick-step { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--window); transition: border-color var(--duration-standard), background-color var(--duration-standard); }
+.eo-quick-step-dot { height: 8px; width: 8px; flex-shrink: 0; border-radius: 50%; background: var(--border-strong); }
+.eo-quick-step-state { font-size: 9.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--subtle); }
+.eo-quick-step[data-state="Running"] { border-color: color-mix(in oklab, var(--cyan) 45%, transparent); }
+.eo-quick-step[data-state="Running"] .eo-quick-step-dot { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); animation: eo-pulse 1s ease-in-out infinite; }
+.eo-quick-step[data-state="Running"] .eo-quick-step-state { color: var(--cyan); }
+.eo-quick-step[data-state="Completed"] .eo-quick-step-dot { background: var(--success); }
+.eo-quick-step[data-state="Completed"] .eo-quick-step-state { color: var(--success); }
+.eo-quick-step[data-state="Skipped"] .eo-quick-step-dot { background: var(--warning); }
+.eo-quick-step[data-state="Skipped"] .eo-quick-step-state { color: var(--warning); }
+.eo-quick-step[data-state="Failed"] .eo-quick-step-dot { background: var(--destructive); }
+.eo-quick-step[data-state="Failed"] .eo-quick-step-state { color: var(--destructive); }
+
+@container (max-width: 1050px) {
+  .eo-page-content .eo-module-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@container (max-width: 900px) {
+  .eo-page-content .eo-module-grid { grid-template-columns: minmax(0, 1fr); }
+  .eo-page-content .eo-v4-scope-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 1100px) {
+  .eo-v4-tab-sub { display: none; }
+  .eo-v4-crumb { font-size: 10px; }
+}
+@media (max-width: 760px) {
+  .eo-logo-edition { display: none; }
+  .eo-v4-nav { height: auto; }
+  .eo-v4-crumb { display: none; }
+}
+@container (max-width: 1050px) {
+  .eo-page-content .eo-v4-scope-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ── Hidden-scrollbar affordance: edge fades on scroll containers ──
+ * Scroll-driven (no JS). The fade appears only on edges that have more content; when a box
+ * doesn't overflow, the timeline is inactive and no fade is drawn. Not motion, so it is kept
+ * under reduced-motion settings. Browsers without scroll timelines simply show no fade. */
+@property --fade-start { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --fade-end { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@keyframes eo-scroll-fade {
+  0% { --fade-start: 0px; --fade-end: 22px; }
+  6%, 94% { --fade-start: 22px; --fade-end: 22px; }
+  100% { --fade-start: 22px; --fade-end: 0px; }
+}
+@supports (animation-timeline: scroll()) {
+  .eo-scroll-fade, .eo-activity {
+    mask-image: linear-gradient(to bottom, transparent, black var(--fade-start), black calc(100% - var(--fade-end)), transparent);
+    animation: eo-scroll-fade linear both !important;
+    animation-timeline: scroll(self block) !important;
+  }
+  .eo-scroll-fade-x, .eo-data-table {
+    mask-image: linear-gradient(to right, transparent, black var(--fade-start), black calc(100% - var(--fade-end)), transparent);
+    animation: eo-scroll-fade linear both !important;
+    animation-timeline: scroll(self inline) !important;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-motion="reduced"]) :is(#main-content, .eo-scroll-fade, .eo-activity) { scroll-behavior: smooth; }
+}
+
+/* ── Contextual guides (GuideTip popover, GuideButton, GuideSteps) ── */
+.eo-guide-tip { display: inline-flex; height: 18px; width: 18px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 999px; color: var(--subtle); border: 1px solid transparent; background: transparent; vertical-align: middle; }
+.eo-guide-tip svg { height: 13px; width: 13px; transition: transform var(--duration-control) var(--ease-spring); }
+.eo-guide-tip-md { height: 22px; width: 22px; }
+.eo-guide-tip-md svg { height: 15px; width: 15px; }
+.eo-guide-tip:hover, .eo-guide-tip[data-open="true"] { color: var(--cyan); border-color: color-mix(in oklab, var(--cyan) 30%, transparent); background: color-mix(in oklab, var(--cyan) 10%, transparent); }
+.eo-guide-tip:hover svg { transform: scale(1.08); }
+.eo-guide-tip:focus-visible, .eo-guide-pop button:focus-visible, .eo-guide-btn:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
+.eo-guide-pop { position: fixed; z-index: 70; max-height: min(72vh, 540px); overflow-y: auto; overscroll-behavior: contain; border-radius: 12px; border: 1px solid var(--border-strong); padding: 12px 14px 10px; color: var(--foreground); text-align: left; text-transform: none; letter-spacing: normal; font-weight: 400; background: linear-gradient(160deg, var(--surface-light), transparent 40%), var(--glass-float); backdrop-filter: var(--glass-blur-float); box-shadow: var(--overlay-shadow); transform-origin: top center; animation: eo-pop-in 160ms var(--ease-out) both; outline: none; }
+.eo-guide-pop[data-above] { transform-origin: bottom center; }
+.eo-guide-head { display: flex; align-items: flex-start; gap: 10px; }
+.eo-guide-icon { display: inline-flex; height: 28px; width: 28px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 8px; color: var(--cyan); background: color-mix(in oklab, var(--cyan) 12%, transparent); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--cyan) 24%, transparent); }
+.eo-guide-icon svg { height: 15px; width: 15px; }
+.eo-guide-title { font-size: 13px; font-weight: 800; line-height: 1.25; text-transform: uppercase; letter-spacing: .02em; }
+.eo-guide-risk { display: inline-block; margin-top: 3px; font-size: 9.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted-foreground); }
+.eo-guide-risk[data-risk="low"] { color: var(--success); }
+.eo-guide-risk[data-risk="medium"] { color: var(--warning); }
+.eo-guide-risk[data-risk="high"] { color: var(--destructive); }
+.eo-guide-risk[data-risk="info"] { color: var(--cyan); }
+.eo-guide-close { display: inline-flex; height: 24px; width: 24px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 6px; color: var(--muted-foreground); }
+.eo-guide-close:hover { color: var(--foreground); background: var(--highlight); }
+.eo-guide-close svg { height: 14px; width: 14px; }
+.eo-guide-what { margin-top: 10px; font-size: 12.5px; font-weight: 600; line-height: 1.45; }
+.eo-guide-why { margin-top: 3px; font-size: 11.5px; line-height: 1.45; color: var(--muted-foreground); }
+.eo-guide-facts { margin-top: 10px; display: grid; gap: 6px; border-top: 1px solid var(--border); padding-top: 9px; }
+.eo-guide-facts > div { display: grid; grid-template-columns: 96px 1fr; gap: 8px; font-size: 11.5px; line-height: 1.4; }
+.eo-guide-facts dt { font-size: 9.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--subtle); padding-top: 1px; }
+.eo-guide-facts dd { color: var(--foreground); }
+.eo-guide-limits { margin-top: 9px; display: flex; gap: 7px; border-radius: 8px; border: 1px solid var(--border); background: color-mix(in oklab, var(--window) 70%, transparent); padding: 7px 9px; font-size: 11px; line-height: 1.45; color: var(--muted-foreground); }
+.eo-guide-limits[data-warn] { border-color: color-mix(in oklab, var(--warning) 32%, transparent); background: color-mix(in oklab, var(--warning) 6%, transparent); color: var(--foreground); }
+.eo-guide-limits svg { height: 13px; width: 13px; flex-shrink: 0; margin-top: 1px; color: var(--muted-foreground); }
+.eo-guide-limits[data-warn] svg { color: var(--warning); }
+.eo-guide-more { margin-top: 8px; display: flex; width: 100%; align-items: center; justify-content: space-between; border-radius: 6px; padding: 4px 0; font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted-foreground); }
+.eo-guide-more:hover { color: var(--cyan); }
+.eo-guide-more svg { height: 14px; width: 14px; transition: transform var(--duration-control) var(--ease-out); }
+.eo-guide-more svg[data-open="true"] { transform: rotate(180deg); color: var(--cyan); }
+.eo-guide-how { padding: 2px 0 6px; font-size: 11.5px; line-height: 1.5; color: var(--muted-foreground); }
+.eo-guide-how ul { margin-top: 4px; list-style: disc; padding-left: 16px; }
+.eo-guide-foot { margin-top: 4px; display: flex; align-items: center; gap: 6px; border-top: 1px solid var(--border); padding-top: 8px; font-size: 10.5px; font-weight: 600; color: var(--warning); }
+.eo-guide-foot svg { height: 12px; width: 12px; }
+
+.eo-guide-btn { display: inline-flex; height: 32px; align-items: center; gap: 6px; border-radius: 8px; border: 1px solid var(--border); padding: 0 12px; font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted-foreground); background: transparent; }
+.eo-guide-btn:hover { color: var(--cyan); border-color: color-mix(in oklab, var(--cyan) 40%, var(--border)); background: color-mix(in oklab, var(--cyan) 6%, transparent); }
+.eo-guide-btn svg { height: 14px; width: 14px; }
+.eo-guide-btn { transition: color var(--duration-control) var(--ease-out), border-color var(--duration-control) var(--ease-out), background-color var(--duration-control) var(--ease-out), transform var(--duration-control) var(--ease-out); }
+.eo-guide-btn[aria-expanded="true"] { color: var(--cyan); border-color: color-mix(in oklab, var(--cyan) 40%, var(--border)); background: color-mix(in oklab, var(--cyan) 6%, transparent); }
+.eo-guide-btn:active { transform: translateY(1px) scale(.98); box-shadow: var(--shadow-pressed); }
+.eo-guide-modal .eo-guide-steps > li { animation: eo-section-in var(--duration-dialog) var(--ease-emphasized) backwards; }
+.eo-guide-step-tag { margin-left: 8px; display: inline-block; border-radius: 999px; border: 1px solid var(--border); padding: 1px 7px; font-size: 9.5px; font-weight: 700; letter-spacing: .06em; color: var(--muted-foreground); vertical-align: 1px; }
+.eo-guide-points { margin-top: 6px; display: grid; gap: 3px; padding-left: 14px; list-style: disc; font-size: 11.5px; line-height: 1.45; color: var(--muted-foreground); }
+.eo-guide-steps ~ .eo-guide-foot { margin-top: 14px; }
+.eo-guide-note + .eo-guide-foot { margin-top: 6px; border-top: 0; padding-top: 0; }
+.eo-guide-steps { display: grid; gap: 12px; }
+.eo-guide-steps > li { display: grid; grid-template-columns: 30px 1fr; gap: 12px; align-items: start; }
+.eo-guide-num { display: inline-flex; height: 28px; width: 28px; align-items: center; justify-content: center; border-radius: 999px; font-size: 12px; font-weight: 900; color: var(--cyan); background: color-mix(in oklab, var(--cyan) 12%, transparent); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--cyan) 28%, transparent); }
+.eo-guide-step-title { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--foreground); }
+.eo-guide-steps p { margin-top: 2px; font-size: 12px; line-height: 1.5; color: var(--muted-foreground); }
+.eo-guide-note { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 10px; font-size: 11px; color: var(--success); }
+.eo-guide-num-sm { height: 22px; width: 22px; flex-shrink: 0; font-size: 10.5px; }
+
+/* ── Dashboard: navigation shortcuts + Quick Optimize ── */
+.eo-nav-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.eo-nav-tile { display: flex; align-items: center; gap: 10px; min-height: 58px; padding: 10px 12px; border-radius: 11px; border: 1px solid var(--border); background: var(--gradient-card); box-shadow: var(--shadow-card); transition: border-color var(--duration-control), transform var(--duration-control) var(--ease-out), box-shadow var(--duration-control); }
+.eo-nav-tile:hover { border-color: color-mix(in oklab, var(--cyan) 45%, var(--border)); transform: translateY(-2px); box-shadow: var(--shadow-elevated); }
+.eo-nav-tile:active { transform: translateY(0); box-shadow: var(--shadow-pressed); }
+.eo-nav-tile:hover .eo-quick-arrow { transform: translate(2px, -2px); }
+.eo-nav-tile:hover .eo-quick-icon { transform: translateY(-1px) scale(1.06); }
+.eo-nav-tile[data-primary="true"] { border-color: color-mix(in oklab, var(--primary) 55%, var(--border)); background: linear-gradient(140deg, color-mix(in oklab, var(--primary) 16%, transparent), transparent 70%), var(--gradient-card); }
+.eo-qo-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.eo-qo-grid .eo-quick { min-height: 128px; }
+@container (max-width: 1050px) {
+  .eo-page-content .eo-qo-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@container (max-width: 900px) {
+  .eo-page-content .eo-nav-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container (max-width: 640px) {
+  .eo-page-content .eo-qo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ── Restore point / System Protection ── */
+.eo-rp-alert { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 9px; border: 1px solid var(--border); background: var(--window); font-size: 12px; line-height: 1.5; }
+.eo-rp-alert[data-tone="success"] { color: var(--success); border-color: color-mix(in oklab, var(--success) 35%, var(--border)); background: color-mix(in oklab, var(--success) 7%, var(--window)); }
+.eo-rp-alert[data-tone="danger"] { color: var(--destructive); border-color: color-mix(in oklab, var(--destructive) 35%, var(--border)); background: color-mix(in oklab, var(--destructive) 7%, var(--window)); }
+.eo-rp-drive { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 9px; border: 1px solid color-mix(in oklab, var(--warning) 30%, var(--border)); background: color-mix(in oklab, var(--warning) 5%, var(--window)); }
+.eo-rp-list { display: grid; gap: 6px; }
+.eo-rp-list li { position: relative; padding-left: 18px; font-size: 12px; line-height: 1.45; color: var(--muted-foreground); }
+.eo-rp-list li::before { content: ""; position: absolute; left: 3px; top: 6px; height: 6px; width: 6px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 6px color-mix(in oklab, var(--cyan) 60%, transparent); }
+.eo-rp-steps { counter-reset: rp; display: grid; gap: 6px; }
+.eo-rp-steps li { counter-increment: rp; position: relative; padding-left: 26px; font-size: 11.5px; line-height: 1.45; color: var(--muted-foreground); }
+.eo-rp-steps li::before { content: counter(rp); position: absolute; left: 0; top: 0; display: flex; height: 18px; width: 18px; align-items: center; justify-content: center; border-radius: 50%; font-size: 10px; font-weight: 800; color: var(--cyan); background: color-mix(in oklab, var(--cyan) 12%, transparent); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--cyan) 26%, transparent); }
+h3[data-tone="warning"] { color: var(--warning); }
+h3[data-tone="danger"] { color: var(--destructive); }
+h3[data-tone="success"] { color: var(--success); }
+h3[data-tone="cyan"] { color: var(--cyan); }
+.eo-rp-device { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-top: 12px; padding-bottom: 12px; }
+.eo-rp-device .eo-section-title { margin-bottom: 8px; }
+
+/* ── Input Optimizer: mode picker + read-only recommended rows ── */
+.eo-mode-pick { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.15fr) minmax(0, 0.9fr); gap: 8px; }
+.eo-mode-opt { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 10px 12px; border-radius: 11px; border: 1px solid var(--border); background: var(--window); text-align: left; transition: border-color var(--duration-control) var(--ease-out), background-color var(--duration-control) var(--ease-out), box-shadow var(--duration-control) var(--ease-out), transform var(--duration-control) var(--ease-out); }
+.eo-mode-opt:hover { border-color: color-mix(in oklab, var(--cyan) 40%, var(--border)); transform: translateY(-1px); }
+.eo-mode-opt[aria-checked="true"] { border-color: color-mix(in oklab, var(--cyan) 65%, transparent); background: linear-gradient(140deg, color-mix(in oklab, var(--cyan) 12%, transparent), transparent 75%), var(--window); box-shadow: var(--shadow-glow); }
+.eo-mode-opt[aria-checked="true"] .eo-mode-count { color: var(--cyan); border-color: color-mix(in oklab, var(--cyan) 40%, transparent); }
+.eo-mode-count { flex-shrink: 0; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--border); font-size: 9.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--subtle); white-space: nowrap; transition: color var(--duration-control), border-color var(--duration-control); }
+.eo-mode-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; border: 1px solid color-mix(in oklab, var(--border) 90%, transparent); background: var(--window); }
+.eo-mode-row:not([data-included]) { opacity: .66; }
+.eo-mode-row-mark { display: flex; height: 18px; width: 18px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 5px; border: 1px solid var(--border); color: var(--subtle); }
+.eo-mode-row[data-included] .eo-mode-row-mark { border-color: var(--cyan); background: var(--cyan); color: var(--sidebar-primary-foreground); }
+@container (max-width: 900px) {
+  .eo-page-content .eo-mode-pick { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ── System Telemetry: System Health Check ── */
+.eo-health-grid { display: grid; grid-template-columns: 196px minmax(0, 1fr); gap: 18px; align-items: center; }
+.eo-health-score { display: flex; flex-direction: column; align-items: center; padding-right: 18px; border-right: 1px solid var(--border); }
+.eo-health-meta { margin-top: 8px; display: grid; gap: 4px; width: 100%; font-size: 10.5px; }
+.eo-health-meta > div { display: flex; justify-content: space-between; gap: 8px; }
+.eo-health-meta dt { color: var(--subtle); }
+.eo-health-meta dd { font-weight: 700; text-align: right; }
+.eo-health-cats { display: grid; gap: 8px; }
+.eo-health-cats > li { display: grid; grid-template-columns: minmax(0, 190px) minmax(0, 1fr) 36px; align-items: center; gap: 12px; }
+.eo-health-cats > li[data-missing] .eo-score-bar { opacity: .4; background: repeating-linear-gradient(135deg, var(--window) 0 4px, color-mix(in oklab, var(--border) 70%, transparent) 4px 8px); }
+.eo-health-attn { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.eo-health-attn > li { min-width: 0; padding: 9px 11px; border-radius: 9px; border: 1px solid color-mix(in oklab, var(--warning) 28%, var(--border)); background: color-mix(in oklab, var(--warning) 5%, var(--window)); }
+.eo-health-attn > li[data-missing] { border-color: var(--border); background: var(--window); }
+.eo-health-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.eo-health-table th { padding: 4px 8px; text-align: left; font-size: 9.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--subtle); border-bottom: 1px solid var(--border); }
+.eo-health-table td { padding: 5px 8px; border-bottom: 1px solid color-mix(in oklab, var(--border) 60%, transparent); color: var(--muted-foreground); }
+@container (max-width: 1000px) {
+  .eo-page-content .eo-health-attn { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container (max-width: 760px) {
+  .eo-page-content .eo-health-grid { grid-template-columns: minmax(0, 1fr); }
+  .eo-page-content .eo-health-score { border-right: 0; padding-right: 0; }
+  .eo-page-content .eo-health-attn { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ── Registry Values landing: compact per-family numbers ── */
+.eo-rv-mini { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; overflow: hidden; border-radius: 10px; border: 1px solid var(--border); background: var(--border); }
+.eo-rv-mini > div { padding: 8px 12px; background: var(--card); transition: background-color var(--duration-standard) var(--ease-out); }
+.eo-rv-mini > div:hover { background: color-mix(in oklab, var(--highlight) 60%, var(--card)); }
+.eo-rv-mini [data-tone="success"] dd { color: var(--success); }
+.eo-rv-mini [data-tone="warning"] dd { color: var(--warning); }
+
+/* ── V4 Performance Center module tiles (share the card hover; arrow + icon micro-interaction) ── */
+.eo-module-link { display: block; border-radius: 12px; outline: none; }
+.eo-module-link:focus-visible { box-shadow: 0 0 0 2px var(--cyan); }
+.eo-module-icon { display: inline-flex; height: 32px; width: 32px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 9px; border: 1px solid color-mix(in oklab, var(--cyan) 35%, transparent); background: color-mix(in oklab, var(--cyan) 10%, transparent); color: var(--cyan); transition: transform var(--duration-control) var(--ease-spring), box-shadow var(--duration-control) var(--ease-out); }
+.eo-module-link:hover .eo-module-icon { transform: translateY(-1px) scale(1.06); box-shadow: var(--shadow-glow); }
+.eo-module-arrow { transition: transform var(--duration-control) var(--ease-out), color var(--duration-fast); }
+.eo-module-link:hover .eo-module-arrow { transform: translate(2px, -2px); color: var(--cyan); }
+[data-motion="reduced"] .eo-module-icon, [data-motion="reduced"] .eo-module-arrow { transition: none; transform: none !important; }
+
+/* ── Settings accent swatches (filled, with the shared press/hover feedback) ── */
+[data-swatch] { box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.25), 0 2px 6px -2px oklch(0 0 0 / 0.5); transition: transform var(--duration-control) var(--ease-spring), border-color var(--duration-fast); }
+[data-swatch]:hover { transform: scale(1.1); }
+[data-swatch]:active { transform: scale(0.94); }
+[data-swatch="0"] { background: oklch(0.75 0.15 230); }
+[data-swatch="1"] { background: var(--primary-hover); }
+[data-swatch="2"] { background: var(--success); }
+[data-swatch="3"] { background: var(--warning); }
+[data-swatch="4"] { background: var(--destructive); }
+[data-swatch="5"] { background: var(--tier-debloat); }
+[data-motion="reduced"] [data-swatch] { transition: none; transform: none; }
+
+/* ── Static list rows (inventory, candidates, actions): the same quiet hover as table rows ── */
+.eo-list-row { transition: border-color var(--duration-fast) var(--ease-out), background-color var(--duration-standard) var(--ease-out); }
+.eo-list-row:hover { border-color: var(--border-strong); background-color: color-mix(in oklab, var(--highlight) 55%, var(--window)); }
+
+/* ── Appearance & Effects (src/components/eo/Effects.tsx, settings in effectsStore.ts) ──
+ * Attributes on <html>: data-fx-theme, data-fx-bg, data-fx-ripple, data-fx-buttons, data-fx-cards,
+ * data-fx-icons, data-fx-page, data-fx-modal, data-fx-sections, data-fx-sidebar, data-fx-focus.
+ * Intensity vars: --fx-bg, --fx-glow (0–1). Themes set --fx-a / --fx-b. */
+html:not([data-fx-theme="custom"]):not([data-fx-theme="minimal"])[data-fx-theme] { --cyan: var(--fx-a, oklch(0.75 0.15 230)); --ring: var(--fx-a, oklch(0.75 0.15 230)); }
+.eo-fx-canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; }
+.eo-fx-bg { z-index: -1; opacity: calc(0.4 + var(--fx-bg, 0.5) * 0.6); }
+.eo-fx-cursor { z-index: 2147483000; }
+html[data-fx-bg="off"] .eo-fx-bg { display: none; }
+
+/* Ambient layers: drifting glows + slow technical grid. Transform/opacity only. */
+.eo-ambient { overflow: hidden; opacity: calc(0.55 + var(--fx-glow, 0.5) * 0.9); }
+.eo-ambient::before, .eo-ambient::after { content: ""; position: absolute; pointer-events: none; }
+.eo-ambient::before { inset: -40%; background:
+  radial-gradient(35% 30% at 30% 30%, color-mix(in oklab, var(--cyan) calc(var(--fx-glow, 0.5) * 14%), transparent), transparent 70%),
+  radial-gradient(30% 35% at 72% 68%, color-mix(in oklab, var(--fx-b, var(--primary)) calc(var(--fx-glow, 0.5) * 16%), transparent), transparent 70%);
+  animation: eo-fx-drift 38s var(--ease-out) infinite alternate; will-change: transform; }
+.eo-ambient::after { inset: -64px 0 0 0; opacity: calc(var(--fx-bg, 0.5) * 0.5);
+  background-image: linear-gradient(color-mix(in oklab, var(--cyan) 7%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--cyan) 7%, transparent) 1px, transparent 1px);
+  background-size: 64px 64px; mask-image: radial-gradient(70% 60% at 50% 20%, oklch(0 0 0) 0%, transparent 75%);
+  animation: eo-fx-grid 24s linear infinite; }
+html[data-fx-focus="page"] .eo-ambient::after { opacity: calc(var(--fx-bg, 0.5) * 0.22); }
+html[data-fx-focus="page"] .eo-ambient::before { opacity: 0.7; }
+html[data-fx-bg="off"] .eo-ambient::before, html[data-fx-bg="off"] .eo-ambient::after { display: none; }
+html[data-fx-theme="minimal"] .eo-ambient::before, html[data-fx-theme="minimal"] .eo-ambient::after { animation: none; }
+@keyframes eo-fx-drift { 0% { transform: translate3d(-3%, -2%, 0) scale(1); } 50% { transform: translate3d(3%, 2%, 0) scale(1.06); } 100% { transform: translate3d(-1%, 4%, 0) scale(1.02); } }
+@keyframes eo-fx-grid { to { transform: translate3d(0, 64px, 0); } }
+
+/* Modal entrance light + animated border sheen */
+.eo-modal::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: linear-gradient(115deg, transparent 30%, color-mix(in oklab, var(--cyan) 12%, transparent) 50%, transparent 70%); background-size: 250% 100%; animation: eo-fx-sheen 1.1s var(--ease-out) 120ms both; }
+@keyframes eo-fx-sheen { from { background-position: 120% 0; opacity: 1; } to { background-position: -40% 0; opacity: 0; } }
+html[data-fx-modal="off"] :is(.eo-overlay, .eo-modal, .eo-dismiss, .eo-dismiss .eo-modal) { animation-duration: 1ms !important; }
+html[data-fx-modal="off"] .eo-modal::after { display: none; }
+
+/* Click ripple (buttons only; never disabled controls) */
+.eo-ripple { position: absolute; border-radius: 999px; pointer-events: none; background: radial-gradient(circle, color-mix(in oklab, var(--cyan) 40%, transparent) 0%, transparent 65%); transform: scale(0); animation: eo-fx-ripple 600ms var(--ease-out) forwards; }
+@keyframes eo-fx-ripple { to { transform: scale(1); opacity: 0; } }
+[data-ripple] { position: relative; overflow: hidden; }
+
+/* Card light sweep on interactive cards (links/buttons styled as cards) */
+:is(.eo-module-link, a.eo-card, button.eo-card) { position: relative; overflow: hidden; }
+:is(.eo-module-link, a.eo-card, button.eo-card)::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(110deg, transparent 35%, color-mix(in oklab, var(--cyan) 10%, transparent) 50%, transparent 65%); transform: translateX(-110%); transition: transform 700ms var(--ease-out); }
+:is(.eo-module-link, a.eo-card, button.eo-card):hover::after { transform: translateX(110%); }
+
+/* Section entrance (stagger on first-level page sections) */
+html[data-fx-sections="on"] .eo-page-content > * > :nth-child(-n+8) { animation: eo-page-in var(--duration-page) var(--ease-out) both; }
+html[data-fx-sections="on"] .eo-page-content > * > :nth-child(2) { animation-delay: 40ms; }
+html[data-fx-sections="on"] .eo-page-content > * > :nth-child(3) { animation-delay: 80ms; }
+html[data-fx-sections="on"] .eo-page-content > * > :nth-child(4) { animation-delay: 120ms; }
+html[data-fx-sections="on"] .eo-page-content > * > :nth-child(n+5) { animation-delay: 160ms; }
+
+/* Interaction toggles */
+html[data-fx-page="off"] .eo-enter { animation: none; }
+html[data-fx-buttons="off"] .eo-btn, html[data-fx-buttons="off"] .eo-btn::after { transition: none !important; transform: none !important; }
+html[data-fx-buttons="off"] .eo-btn:hover:not(:disabled) { box-shadow: none; }
+html[data-fx-cards="off"] .eo-card, html[data-fx-cards="off"] .eo-card:hover, html[data-fx-cards="off"] .eo-module-link:hover { transform: none !important; }
+html[data-fx-cards="off"] :is(.eo-module-link, a.eo-card, button.eo-card)::after { display: none; }
+html[data-fx-icons="off"] :is(.eo-btn, .eo-nav-item, .eo-module-link) svg { transform: none !important; transition: none !important; }
+html[data-fx-sidebar="off"] :is(.eo-dock-indicator, .eo-tab-indicator, .eo-dock) { transition: none !important; }
+
+/* Theme switching fades accent-coloured surfaces instead of snapping */
+html:not([data-motion="reduced"]) body { transition: background-color var(--duration-slow) var(--ease-out); }
+
+html[data-motion="reduced"] .eo-fx-canvas, html[data-motion="reduced"] .eo-ripple { display: none; }
+@media (prefers-reduced-motion: reduce) { .eo-ambient::before, .eo-ambient::after, .eo-modal::after { animation: none !important; } }
+.eo-fx-dot { width: 10px; height: 10px; border-radius: 999px; box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.2); background: linear-gradient(135deg, var(--cyan), var(--primary)); }
+.eo-fx-dot[data-fx-dot="minimal"] { background: var(--muted-foreground); }
+.eo-fx-dot[data-fx-dot="flame"] { background: linear-gradient(135deg, oklch(0.76 0.17 55), oklch(0.64 0.21 30)); }
+.eo-fx-dot[data-fx-dot="thunder"] { background: linear-gradient(135deg, oklch(0.86 0.15 95), oklch(0.68 0.17 275)); }
+.eo-fx-dot[data-fx-dot="water"] { background: linear-gradient(135deg, oklch(0.8 0.12 205), oklch(0.6 0.15 245)); }
+.eo-fx-dot[data-fx-dot="mist"] { background: linear-gradient(135deg, oklch(0.85 0.05 220), oklch(0.68 0.06 260)); }
+.eo-fx-dot[data-fx-dot="shadow"] { background: linear-gradient(135deg, oklch(0.72 0.14 300), oklch(0.45 0.13 290)); }
+.eo-fx-dot[data-fx-dot="cosmic"] { background: linear-gradient(135deg, oklch(0.76 0.17 320), oklch(0.7 0.15 270)); }
+.eo-fx-theme { position: relative; overflow: hidden; transition: border-color var(--duration-control), background-color var(--duration-control), color var(--duration-fast); }
+
+/* ── Premium dropdowns & search (dropdown.tsx, SearchBox) ── */
+.eo-dd-trigger { display: inline-flex; align-items: center; gap: 8px; height: 34px; min-width: 0; width: 100%; padding: 0 10px 0 12px; border-radius: var(--radius-lg, 10px); border: 1px solid var(--border); background: var(--window); color: var(--foreground); font-size: 13px; text-align: left; transition: border-color var(--duration-control, 160ms), background-color var(--duration-control, 160ms), box-shadow var(--duration-control, 160ms); }
+.eo-dd-trigger[data-size="sm"] { height: 30px; font-size: 12px; }
+.eo-dd-trigger:hover:not(:disabled) { border-color: var(--border-strong); background: color-mix(in oklab, var(--highlight) 45%, var(--window)); }
+.eo-dd-trigger:focus-visible, .eo-dd-trigger[data-open] { outline: none; border-color: color-mix(in oklab, var(--cyan) 60%, transparent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--cyan) 16%, transparent); }
+.eo-dd-trigger:disabled { opacity: 0.5; cursor: not-allowed; }
+.eo-dd-trigger > .truncate { flex: 1; }
+.eo-dd-chevron { width: 14px; height: 14px; flex: none; color: var(--subtle, var(--muted-foreground)); transition: transform var(--duration-control, 160ms); }
+.eo-dd-trigger[data-open] .eo-dd-chevron { transform: rotate(180deg); color: var(--cyan); }
+.eo-dd-count { flex: none; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: color-mix(in oklab, var(--cyan) 20%, transparent); color: var(--cyan); font-size: 10.5px; font-weight: 700; display: inline-grid; place-items: center; }
+.eo-dd-panel { position: fixed; z-index: 1000; max-width: min(360px, calc(100vw - 16px)); padding: 5px; border-radius: 12px; border: 1px solid var(--border-strong); background: color-mix(in oklab, var(--window) 94%, transparent); backdrop-filter: blur(14px); box-shadow: 0 18px 40px -12px oklch(0 0 0 / 0.6), 0 0 0 1px oklch(1 0 0 / 0.03) inset; outline: none; animation: eo-dd-in 140ms cubic-bezier(.2,.8,.2,1); transform-origin: top center; }
+.eo-dd-panel[data-up] { transform-origin: bottom center; }
+.eo-dd-panel[role="listbox"]:not([aria-multiselectable]) { max-height: 300px; overflow-y: auto; }
+@keyframes eo-dd-in { from { opacity: 0; transform: translateY(-4px) scale(0.98); } to { opacity: 1; transform: none; } }
+.eo-dd-list { max-height: 260px; overflow-y: auto; }
+.eo-dd-option { display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: 8px; font-size: 12.5px; color: var(--muted-foreground); cursor: pointer; transition: background-color 120ms, color 120ms; }
+.eo-dd-option[data-active] { background: color-mix(in oklab, var(--highlight) 70%, transparent); color: var(--foreground); }
+.eo-dd-option[aria-selected="true"] { color: var(--cyan); background: color-mix(in oklab, var(--cyan) 10%, transparent); }
+.eo-dd-option[aria-selected="true"][data-active] { background: color-mix(in oklab, var(--cyan) 16%, transparent); }
+.eo-dd-hint { display: block; font-size: 11px; color: var(--subtle, var(--muted-foreground)); }
+.eo-dd-check { width: 14px; height: 14px; flex: none; opacity: 0; transform: scale(0.6); transition: opacity 120ms, transform 160ms; }
+.eo-dd-option[aria-selected="true"] .eo-dd-check { opacity: 1; transform: none; }
+.eo-dd-box { width: 16px; height: 16px; flex: none; border-radius: 5px; border: 1px solid var(--border-strong); display: grid; place-items: center; transition: background-color 140ms, border-color 140ms; }
+.eo-dd-box svg { width: 11px; height: 11px; opacity: 0; transform: scale(0.5); transition: opacity 120ms, transform 160ms; color: var(--window); }
+.eo-dd-option[aria-selected="true"] .eo-dd-box { background: var(--cyan); border-color: var(--cyan); }
+.eo-dd-option[aria-selected="true"] .eo-dd-box svg { opacity: 1; transform: none; }
+.eo-dd-head, .eo-dd-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; font-size: 11px; color: var(--muted-foreground); }
+.eo-dd-head { border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+.eo-dd-foot { border-top: 1px solid var(--border); margin-top: 4px; justify-content: flex-end; }
+.eo-dd-link { padding: 2px 6px; border-radius: 6px; color: var(--cyan); font-weight: 600; }
+.eo-dd-link:hover { background: color-mix(in oklab, var(--cyan) 12%, transparent); }
+.eo-dd-btn { height: 26px; padding: 0 12px; border-radius: 7px; border: 1px solid var(--border); font-size: 12px; font-weight: 600; color: var(--foreground); transition: background-color 120ms, border-color 120ms; }
+.eo-dd-btn:hover { border-color: var(--border-strong); background: var(--highlight); }
+.eo-dd-btn[data-primary] { background: var(--cyan); border-color: var(--cyan); color: var(--window); }
+.eo-dd-btn[data-primary]:hover { filter: brightness(1.08); }
+.eo-dd-chip { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 4px 0 8px; border-radius: 999px; border: 1px solid color-mix(in oklab, var(--cyan) 35%, transparent); background: color-mix(in oklab, var(--cyan) 10%, transparent); color: var(--cyan); font-size: 11px; font-weight: 600; animation: eo-dd-in 140ms ease-out; }
+.eo-dd-chip button { width: 16px; height: 16px; border-radius: 999px; line-height: 1; }
+.eo-dd-chip button:hover { background: color-mix(in oklab, var(--cyan) 22%, transparent); }
+.eo-search input { transition: border-color var(--duration-control, 160ms), box-shadow var(--duration-control, 160ms); }
+.eo-search input:focus { box-shadow: 0 0 0 3px color-mix(in oklab, var(--cyan) 14%, transparent); }
+.eo-search-clear { position: absolute; right: 6px; top: 50%; translate: 0 -50%; width: 20px; height: 20px; border-radius: 6px; display: grid; place-items: center; color: var(--muted-foreground); }
+.eo-search-clear:hover { background: var(--highlight); color: var(--foreground); }
+@media (prefers-reduced-motion: reduce) {
+  .eo-dd-panel, .eo-dd-chip { animation: none; }
+  .eo-dd-chevron, .eo-dd-check, .eo-dd-box, .eo-dd-box svg, .eo-dd-option, .eo-dd-trigger { transition: none; }
 }
